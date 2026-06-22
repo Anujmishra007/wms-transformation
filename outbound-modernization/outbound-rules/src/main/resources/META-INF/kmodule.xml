@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+
+    <kbase name="outbound-allocation" packages="com.maersk.wms.outbound.rules">
+        <ksession name="outbound-allocation-rules"/>
+    </kbase>
+
+    <kbase name="outbound-wave" packages="com.maersk.wms.outbound.rules">
+        <ksession name="outbound-wave-rules"/>
+    </kbase>
+
+    <kbase name="outbound-shipping" packages="com.maersk.wms.outbound.rules">
+        <ksession name="outbound-shipping-rules"/>
+    </kbase>
+
+    <kbase name="outbound-cartonization" packages="com.maersk.wms.outbound.rules">
+        <ksession name="outbound-cartonization-rules"/>
+    </kbase>
+
+</kmodule>

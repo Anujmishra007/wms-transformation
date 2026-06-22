@@ -1,0 +1,56 @@
+package com.maersk.wms.picking.rules
+
+import com.maersk.wms.picking.rules.ShortPickFacts
+import com.maersk.wms.picking.rules.ShortPickDecision
+import java.math.BigDecimal
+
+/**
+ * Short pick decision rules for FN839.
+ * Replaces hardcoded short pick logic in rdt_839Confirm*.
+ */
+
+rule "Deny Zero Pick for Critical Orders"
+    salience 100
+    when
+        $facts : ShortPickFacts(
+            pickedQty == BigDecimal.ZERO,
+            task.priority >= 90
+        )
+    then
+        $facts.setDecision(ShortPickDecision.DENY);
+        $facts.setReason("Zero pick not allowed for critical priority orders");
+end
+
+rule "Auto-Reallocate for Minor Shortage"
+    salience 80
+    when
+        $facts : ShortPickFacts(
+            decision == null,
+            pickedQty.compareTo(requestedQty.multiply(new BigDecimal("0.9"))) >= 0
+        )
+    then
+        $facts.setDecision(ShortPickDecision.ALLOW);
+        $facts.setReason("Minor shortage - auto-accept");
+end
+
+rule "Require Approval for Major Shortage"
+    salience 70
+    when
+        $facts : ShortPickFacts(
+            decision == null,
+            pickedQty.compareTo(requestedQty.multiply(new BigDecimal("0.5"))) < 0
+        )
+    then
+        $facts.setDecision(ShortPickDecision.REQUIRE_APPROVAL);
+        $facts.setRequiresApproval(true);
+        $facts.setReason("Major shortage requires supervisor approval");
+end
+
+rule "Allow Standard Short Pick"
+    salience 10
+    when
+        $facts : ShortPickFacts(decision == null)
+    then
+        $facts.setDecision(ShortPickDecision.ALLOW);
+        $facts.setReason("Standard short pick allowed");
+end

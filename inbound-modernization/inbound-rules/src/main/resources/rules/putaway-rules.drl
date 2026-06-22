@@ -1,0 +1,235 @@
+package com.maersk.wms.inbound.rules
+
+import com.maersk.wms.inbound.rules.PutawayLocationFacts
+import com.maersk.wms.inbound.rules.PutawayLocationResult
+import com.maersk.wms.inbound.rules.ReceivingValidationFacts
+import com.maersk.wms.inbound.rules.ReceivingValidationResult
+import com.maersk.wms.inbound.rules.QualityInspectionFacts
+import com.maersk.wms.inbound.rules.QualityInspectionResult
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUTAWAY LOCATION RULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+rule "Fixed Location Putaway"
+    salience 100
+    when
+        $facts : PutawayLocationFacts(fixedLocation != null && !fixedLocation.isEmpty())
+        $result : PutawayLocationResult()
+    then
+        $result.setSelectedLocation($facts.getFixedLocation());
+        $result.setPutawayStrategy("FIXED");
+        $result.addMessage("Using fixed location for SKU");
+end
+
+rule "Cross Dock - Direct to Staging"
+    salience 90
+    when
+        $facts : PutawayLocationFacts(isCrossDock == true)
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setPutawayStrategy("CROSS_DOCK");
+        $result.setSelectedZone("STAGING");
+        $result.addMessage("Cross-dock item routed to outbound staging");
+end
+
+rule "Inspection Required - QC Location"
+    salience 85
+    when
+        $facts : PutawayLocationFacts(requiresInspection == true)
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setRequiresInspectionFirst(true);
+        $result.setSelectedZone("QC");
+        $result.setPutawayStrategy("INSPECTION");
+        $result.addMessage("Item requires inspection before putaway");
+end
+
+rule "Cold Storage Items"
+    salience 80
+    when
+        $facts : PutawayLocationFacts(storageType == "COLD", selectedLocation == null)
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setSelectedZone("COLD");
+        $result.setPutawayStrategy("DIRECTED");
+        $result.addMessage("Routed to cold storage zone");
+end
+
+rule "Hazmat Items"
+    salience 80
+    when
+        $facts : PutawayLocationFacts(storageType == "HAZMAT")
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setSelectedZone("HAZMAT");
+        $result.setPutawayStrategy("DIRECTED");
+        $result.addMessage("Routed to hazmat storage zone");
+end
+
+rule "High Velocity A-Class Items"
+    salience 70
+    when
+        $facts : PutawayLocationFacts(skuClass == "A")
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setSelectedZone("FORWARD");
+        $result.setPriority(1);
+        $result.setPutawayStrategy("VELOCITY");
+        $result.addMessage("A-class item routed to forward pick zone");
+end
+
+rule "Medium Velocity B-Class Items"
+    salience 60
+    when
+        $facts : PutawayLocationFacts(skuClass == "B")
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setSelectedZone("RESERVE");
+        $result.setPriority(2);
+        $result.setPutawayStrategy("VELOCITY");
+        $result.addMessage("B-class item routed to reserve zone");
+end
+
+rule "Low Velocity C-Class Items"
+    salience 50
+    when
+        $facts : PutawayLocationFacts(skuClass == "C")
+        $result : PutawayLocationResult(selectedLocation == null)
+    then
+        $result.setSelectedZone("BULK");
+        $result.setPriority(3);
+        $result.setPutawayStrategy("VELOCITY");
+        $result.addMessage("C-class item routed to bulk storage");
+end
+
+rule "Default Putaway - Random Location"
+    salience 10
+    when
+        $facts : PutawayLocationFacts()
+        $result : PutawayLocationResult(selectedLocation == null, selectedZone == null)
+    then
+        $result.setSelectedZone("GENERAL");
+        $result.setPutawayStrategy("RANDOM");
+        $result.addMessage("Default putaway to general storage");
+end
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECEIVING VALIDATION RULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+rule "Over-Receive Validation"
+    salience 100
+    when
+        $facts : ReceivingValidationFacts(
+            overReceiveAllowed == false,
+            receivedQty > expectedQty
+        )
+        $result : ReceivingValidationResult()
+    then
+        $result.addError("Over-receiving not allowed. Expected: " + $facts.getExpectedQty() + ", Received: " + $facts.getReceivedQty());
+end
+
+rule "Over-Receive Within Tolerance"
+    salience 90
+    when
+        $facts : ReceivingValidationFacts(
+            overReceiveAllowed == true,
+            overReceiveTolerance != null,
+            receivedQty > expectedQty,
+            (receivedQty.subtract(expectedQty)).compareTo(overReceiveTolerance) > 0
+        )
+        $result : ReceivingValidationResult()
+    then
+        $result.addError("Over-receive exceeds tolerance of " + $facts.getOverReceiveTolerance());
+end
+
+rule "Expiration Date Validation"
+    salience 80
+    when
+        $facts : ReceivingValidationFacts(
+            expirationDate != null,
+            shelfLifeDays > 0
+        )
+        $result : ReceivingValidationResult()
+    then
+        // This would have actual date calculation logic
+        $result.addWarning("Check shelf life meets minimum requirements");
+end
+
+rule "Blind Receive Warning"
+    salience 70
+    when
+        $facts : ReceivingValidationFacts(blindReceive == true)
+        $result : ReceivingValidationResult()
+    then
+        $result.addWarning("Blind receiving - no ASN/PO reference");
+end
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUALITY INSPECTION RULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+rule "New Supplier Requires Full Inspection"
+    salience 100
+    when
+        $facts : QualityInspectionFacts(isNewSupplier == true)
+        $result : QualityInspectionResult()
+    then
+        $result.setInspectionRequired(true);
+        $result.setInspectionType("FULL");
+        $result.setSamplePercentage(100);
+        $result.addReason("New supplier requires full inspection");
+        $result.addInspectionCheck("QUANTITY");
+        $result.addInspectionCheck("QUALITY");
+        $result.addInspectionCheck("DOCUMENTATION");
+end
+
+rule "Returns Always Require Inspection"
+    salience 95
+    when
+        $facts : QualityInspectionFacts(isReturn == true)
+        $result : QualityInspectionResult()
+    then
+        $result.setInspectionRequired(true);
+        $result.setInspectionType("RETURN");
+        $result.setSamplePercentage(100);
+        $result.addReason("Customer return requires inspection");
+        $result.addInspectionCheck("CONDITION");
+        $result.addInspectionCheck("COMPLETENESS");
+end
+
+rule "Damaged Items Require Inspection"
+    salience 90
+    when
+        $facts : QualityInspectionFacts(isDamaged == true)
+        $result : QualityInspectionResult()
+    then
+        $result.setInspectionRequired(true);
+        $result.setInspectionType("DAMAGE");
+        $result.setSamplePercentage(100);
+        $result.addReason("Damaged items require inspection");
+        $result.addInspectionCheck("DAMAGE_ASSESSMENT");
+end
+
+rule "Low Supplier Quality Score"
+    salience 80
+    when
+        $facts : QualityInspectionFacts(supplierQualityScore < 70)
+        $result : QualityInspectionResult()
+    then
+        $result.setInspectionRequired(true);
+        $result.setInspectionType("SAMPLING");
+        $result.setSamplePercentage(25);
+        $result.addReason("Supplier has low quality score: " + $facts.getSupplierQualityScore());
+end
+
+rule "Default No Inspection"
+    salience 10
+    when
+        $facts : QualityInspectionFacts()
+        $result : QualityInspectionResult(inspectionRequired == false)
+    then
+        $result.setInspectionType("NONE");
+        $result.setSamplePercentage(0);
+end

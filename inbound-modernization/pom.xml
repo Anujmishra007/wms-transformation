@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.maersk.wms</groupId>
+    <artifactId>inbound-modernization</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Inbound Modernization - Inbound Bounded Context</name>
+    <description>
+        Inbound Bounded Context with 3 Subdomains:
+
+        1. RECEIVING SUBDOMAIN (inbound-service + inbound-operations-service)
+           - ASN (Advance Ship Notice) processing
+           - Purchase Order management
+           - Receipt creation and management
+           - GRN (Goods Receipt Note) processing
+
+        2. RETURNS SUBDOMAIN
+           - RMA (Return Merchandise Authorization) processing
+           - Return inspection workflows
+           - Disposition management (restock, refurbish, scrap)
+           - Refund/credit processing
+
+        3. PUTAWAY SUBDOMAIN (putaway-service)
+           - Putaway strategy execution
+           - Location allocation algorithms
+           - Cross-docking support
+           - Task management integration
+
+        Organized following DDD principles with:
+        - Shared Kernel for cross-subdomain types
+        - Anti-Corruption Layer for subdomain communication
+        - Future-proof for microservice extraction
+    </description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.3</version>
+        <relativePath/>
+    </parent>
+
+    <modules>
+        <!-- Shared Kernel (must be first - no dependencies on other inbound modules) -->
+        <module>inbound-shared-kernel</module>
+
+        <!-- Core Domain Modules -->
+        <module>inbound-domain</module>
+        <module>inbound-infrastructure</module>
+
+        <!-- Anti-Corruption Layer (subdomain communication) -->
+        <module>inbound-acl</module>
+
+        <!-- Business Logic Modules -->
+        <module>inbound-kafka</module>
+        <module>inbound-rules</module>
+        <module>inbound-variation</module>
+        <module>inbound-service-core</module>
+        <module>inbound-activity</module>
+        <module>inbound-workflow</module>
+        <module>inbound-legacy-bridge</module>
+        <module>inbound-plugin</module>
+
+        <!-- API & Config -->
+        <module>inbound-api</module>
+        <module>inbound-config</module>
+
+        <!-- Testing -->
+        <module>inbound-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <temporal.version>1.22.3</temporal.version>
+        <drools.version>9.44.0.Final</drools.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <springdoc.version>2.5.0</springdoc.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Shared Libraries from wms-shared-libs -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-domain-events</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-test-support</artifactId>
+                <version>${project.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Internal Inbound Modules -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-kafka</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-rules</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-variation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-service-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-activity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-workflow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-legacy-bridge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>inbound-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Temporal -->
+            <dependency>
+                <groupId>io.temporal</groupId>
+                <artifactId>temporal-sdk</artifactId>
+                <version>${temporal.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.temporal</groupId>
+                <artifactId>temporal-testing</artifactId>
+                <version>${temporal.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Drools -->
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-core</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-compiler</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-mvel</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.kie</groupId>
+                <artifactId>kie-api</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Kafka -->
+            <dependency>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka</artifactId>
+                <version>3.2.0</version>
+            </dependency>
+
+            <!-- SpringDoc OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- Karate Testing -->
+            <dependency>
+                <groupId>com.intuit.karate</groupId>
+                <artifactId>karate-junit5</artifactId>
+                <version>1.4.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Testcontainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mssqlserver</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok-mapstruct-binding</artifactId>
+                                <version>0.2.0</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: printing-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+server:
+  port: ${SERVER_PORT:8087}
+
+# Database Configuration
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=WMS;encrypt=true;trustServerCertificate=true}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# Kafka Configuration
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: printing-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.maersk.wms.printing: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Printing Service Configuration
+printing:
+  label:
+    default-format: ZPL
+    render-timeout-ms: 5000
+    max-batch-size: 100
+  job:
+    default-priority: 5
+    max-retries: 3
+    retry-delay-ms: 5000
+  queue:
+    default-max-size: 100
+    poll-interval-ms: 1000
+  printer:
+    status-poll-interval-ms: 30000
+    connection-timeout-ms: 10000

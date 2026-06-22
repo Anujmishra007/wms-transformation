@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>printing-service</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>printing-app</artifactId>
+    <name>Printing Service - Application</name>
+    <description>
+        Application module containing:
+        - Spring Boot application main class
+        - Configuration classes
+        - Application properties
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>printing-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>printing-infrastructure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.maersk.wms.printing.PrintingServiceApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

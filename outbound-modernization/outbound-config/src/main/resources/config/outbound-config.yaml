@@ -1,0 +1,90 @@
+# Outbound Modernization Configuration
+# This configuration controls outbound operations across all clients
+
+outbound:
+  # Allocation settings
+  allocation:
+    default-strategy: FIFO
+    retry-attempts: 3
+    partial-allocation-enabled: true
+    expiration-check-enabled: true
+    minimum-days-to-expiration: 30
+    soft-allocation-enabled: false
+    soft-allocation-timeout-minutes: 30
+
+  # Wave planning settings
+  wave:
+    default-grouping: CARRIER
+    max-orders-per-wave: 100
+    max-lines-per-wave: 1000
+    max-units-per-wave: 10000
+    auto-release-enabled: false
+    planning-batch-size: 500
+
+  # Packing settings
+  packing:
+    default-cartonization: MULTI_SKU
+    default-carton-type: STANDARD
+    pack-slip-required: true
+    gift-wrap-enabled: false
+    weight-capture-required: true
+    dimension-capture-enabled: false
+
+  # Shipping settings
+  shipping:
+    rate-shop-enabled: false
+    manifest-required: true
+    tracking-required: true
+    default-label-format: ZPL
+    commercial-invoice-enabled: false
+    hazmat-validation-enabled: true
+
+  # Notification settings
+  notification:
+    ship-notification-enabled: true
+    asn-enabled: false
+    format: EDI
+    retry-attempts: 3
+
+# Temporal workflow settings
+temporal:
+  namespace: outbound
+  task-queue: outbound-tasks
+  workflow:
+    order-fulfillment:
+      timeout-minutes: 60
+      retry-attempts: 3
+    wave-planning:
+      timeout-minutes: 30
+      retry-attempts: 2
+
+# Kafka settings
+kafka:
+  topics:
+    orders: wms.outbound.orders
+    allocations: wms.outbound.allocations
+    waves: wms.outbound.waves
+    shipments: wms.outbound.shipments
+  consumer:
+    group-id: outbound-service
+    auto-offset-reset: earliest
+
+# Drools rules settings
+rules:
+  allocation:
+    package: com.maersk.wms.outbound.rules
+    session: outbound-allocation-rules
+  wave:
+    package: com.maersk.wms.outbound.rules
+    session: outbound-wave-rules
+  shipping:
+    package: com.maersk.wms.outbound.rules
+    session: outbound-shipping-rules
+
+# Feature flags
+features:
+  new-allocation-engine: false
+  new-wave-planner: false
+  new-cartonization: false
+  parity-testing-enabled: true
+  dual-write-enabled: false

@@ -1,0 +1,37 @@
+# Nike Inventory Configuration
+client:
+  code: NIKE
+  name: Nike Inc.
+
+allocation:
+  fifo_variant: FEFO
+  allow_partial_allocation: true
+  reserve_buffer_percent: 5
+
+lottable_attributes:
+  LOTTABLE01: Batch Number
+  LOTTABLE02: Expiry Date
+  LOTTABLE03: Manufacturing Date
+  LOTTABLE04: Country of Origin
+  LOTTABLE05: Vendor Lot
+
+expiry_rules:
+  warn_days_before: 30
+  block_days_before: 7
+  auto_hold_expired: true
+
+adjustment_rules:
+  require_approval_above: 100
+  require_supervisor_for: [DAMAGE, MANUAL]
+  max_variance_percent: 10
+
+hold_codes:
+  - code: QC
+    description: Quality Control
+    auto_release: false
+  - code: DMG
+    description: Damaged
+    auto_release: false
+  - code: RCL
+    description: Recall
+    auto_release: false

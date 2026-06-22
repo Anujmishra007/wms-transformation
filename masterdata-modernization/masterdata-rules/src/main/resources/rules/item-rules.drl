@@ -1,0 +1,162 @@
+package com.maersk.wms.masterdata.rules
+
+import com.maersk.wms.masterdata.rules.ItemValidationFacts
+import com.maersk.wms.masterdata.rules.ItemValidationResult
+
+import java.math.BigDecimal
+
+// =============================================================================
+// ITEM VALIDATION RULES
+// =============================================================================
+
+rule "SKU is required"
+    salience 200
+    when
+        $facts : ItemValidationFacts(sku == null || sku.isEmpty())
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("SKU is required")
+        }
+end
+
+rule "Description is required"
+    salience 200
+    when
+        $facts : ItemValidationFacts(description == null || description.isEmpty())
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Description is required")
+        }
+end
+
+rule "Physical dimensions must be positive"
+    salience 150
+    when
+        $facts : ItemValidationFacts(
+            length != null && length.compareTo(BigDecimal.ZERO) <= 0 ||
+            width != null && width.compareTo(BigDecimal.ZERO) <= 0 ||
+            height != null && height.compareTo(BigDecimal.ZERO) <= 0
+        )
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Physical dimensions must be greater than zero")
+        }
+end
+
+rule "Weight must be positive"
+    salience 150
+    when
+        $facts : ItemValidationFacts(weight != null && weight.compareTo(BigDecimal.ZERO) <= 0)
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Weight must be greater than zero")
+        }
+end
+
+rule "Expiration controlled items require shelf life"
+    salience 100
+    when
+        $facts : ItemValidationFacts(expirationControlled == true, shelfLife <= 0)
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Expiration controlled items must have a positive shelf life")
+        }
+end
+
+rule "Hazmat items require hazmat class"
+    salience 100
+    when
+        $facts : ItemValidationFacts(hazmat == true, hazmatClass == null || hazmatClass.isEmpty())
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Hazmat items must have a hazmat class specified")
+        }
+end
+
+rule "Catch weight requires min/max weights"
+    salience 100
+    when
+        $facts : ItemValidationFacts(
+            catchWeight == true,
+            (minWeight == null || maxWeight == null)
+        )
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Catch weight items must have min and max weights specified")
+        }
+end
+
+rule "Min weight must be less than max weight"
+    salience 100
+    when
+        $facts : ItemValidationFacts(
+            catchWeight == true,
+            minWeight != null,
+            maxWeight != null,
+            minWeight.compareTo(maxWeight) >= 0
+        )
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addError("Min weight must be less than max weight")
+        }
+end
+
+// =============================================================================
+// ABC CLASSIFICATION RULES
+// =============================================================================
+
+rule "Hazmat items are Class A"
+    salience 50
+    when
+        $facts : ItemValidationFacts(hazmat == true)
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            setComputedAbcClass("A")
+        }
+end
+
+rule "Refrigerated items are Class A"
+    salience 50
+    when
+        $facts : ItemValidationFacts(storageType == "REFRIGERATED" || storageType == "FREEZER")
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            setComputedAbcClass("A")
+        }
+end
+
+// =============================================================================
+// WARNING RULES
+// =============================================================================
+
+rule "Warn if no storage zone"
+    salience 30
+    when
+        $facts : ItemValidationFacts(storageZone == null || storageZone.isEmpty())
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addWarning("No storage zone specified, default zone will be used")
+        }
+end
+
+rule "Warn if high cube item"
+    salience 30
+    when
+        $facts : ItemValidationFacts(cube != null && cube.compareTo(new BigDecimal("10")) > 0)
+        $result : ItemValidationResult()
+    then
+        modify($result) {
+            addWarning("High cube item may require special handling")
+        }
+end

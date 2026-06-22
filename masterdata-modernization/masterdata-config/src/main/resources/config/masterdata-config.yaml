@@ -1,0 +1,70 @@
+# Master Data Modernization Configuration
+
+masterdata:
+  # Item settings
+  item:
+    auto-sku-generation: false
+    sku-format: "{PREFIX}-{SEQUENCE}"
+    require-physical-dimensions: false
+    require-weight: true
+    default-status: ACTIVE
+    validation-batch-size: 100
+
+  # Location settings
+  location:
+    code-format: "{ZONE}-{AISLE}-{BAY}-{LEVEL}-{POSITION}"
+    auto-code-generation: true
+    default-type: RESERVE
+    default-storage-type: STANDARD
+    require-dimensions: false
+    calculate-pick-path: true
+
+  # Customer settings
+  customer:
+    address-validation-enabled: false
+    default-type: SHIPTO
+    default-service-level: STANDARD
+    duplicate-check-enabled: true
+
+  # Carrier settings
+  carrier:
+    api-integration-required: false
+    default-label-format: ZPL
+    rate-shop-enabled: false
+
+# Temporal workflow settings
+temporal:
+  namespace: masterdata
+  task-queue: masterdata-tasks
+  workflow:
+    item-import:
+      timeout-minutes: 60
+      batch-size: 100
+    location-setup:
+      timeout-minutes: 30
+
+# Kafka settings
+kafka:
+  topics:
+    items: wms.masterdata.items
+    locations: wms.masterdata.locations
+    customers: wms.masterdata.customers
+    carriers: wms.masterdata.carriers
+  consumer:
+    group-id: masterdata-service
+    auto-offset-reset: earliest
+
+# Drools rules settings
+rules:
+  item:
+    package: com.maersk.wms.masterdata.rules
+    session: masterdata-item-rules
+  location:
+    package: com.maersk.wms.masterdata.rules
+    session: masterdata-location-rules
+
+# Feature flags
+features:
+  new-item-validation: true
+  new-location-generation: true
+  parity-testing-enabled: true

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>printing-service</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>printing-shared-kernel</artifactId>
+    <name>Printing Service - Shared Kernel</name>
+    <description>
+        Shared kernel containing:
+        - Strongly-typed identifiers (LabelKey, PrintJobKey, PrinterKey, etc.)
+        - Value objects (LabelDimensions, PrinterCapabilities, etc.)
+        - Domain events base classes
+        - Common exceptions
+    </description>
+
+    <dependencies>
+        <!-- Central shared kernel - common identifiers and value objects -->
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>wms-shared-kernel</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Event contracts for cross-service communication -->
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>wms-event-contracts</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

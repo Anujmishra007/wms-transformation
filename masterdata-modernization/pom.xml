@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.maersk.wms</groupId>
+    <artifactId>masterdata-modernization</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Master Data Modernization - Master Data Bounded Context</name>
+    <description>
+        Master Data Bounded Context with 3 Subdomains:
+
+        1. PRODUCT MASTER - SKU, Dimensions, Lottables
+        2. WAREHOUSE STRUCTURE - Warehouse, Location, Aisle, Bay, Level, Zone
+        3. OPERATIONAL MASTERS - Storers, Lanes, Docks, Equipment, Users
+
+        Foundational platform service providing reference data to all WMS domains.
+    </description>
+
+    <modules>
+        <!-- Shared Kernel (must be first) -->
+        <module>masterdata-shared-kernel</module>
+
+        <!-- Core Domain Modules -->
+        <module>masterdata-domain</module>
+        <module>masterdata-infrastructure</module>
+
+        <!-- Anti-Corruption Layer -->
+        <module>masterdata-acl</module>
+
+        <!-- Business Logic Modules -->
+        <module>masterdata-plugin</module>
+        <module>masterdata-rules</module>
+        <module>masterdata-workflow</module>
+        <module>masterdata-activity</module>
+        <module>masterdata-service-core</module>
+        <module>masterdata-variation</module>
+        <module>masterdata-kafka</module>
+        <module>masterdata-legacy-bridge</module>
+
+        <!-- API & Config -->
+        <module>masterdata-config</module>
+        <module>masterdata-api</module>
+
+        <!-- Testing -->
+        <module>masterdata-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <temporal.version>1.22.3</temporal.version>
+        <drools.version>9.44.0.Final</drools.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-rules</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-workflow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-activity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-service-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-variation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-kafka</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-legacy-bridge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>masterdata-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.temporal</groupId>
+                <artifactId>temporal-sdk</artifactId>
+                <version>${temporal.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-core</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka</artifactId>
+                <version>3.2.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

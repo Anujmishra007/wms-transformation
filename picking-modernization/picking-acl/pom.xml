@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>picking-modernization</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>picking-acl</artifactId>
+    <name>Picking Anti-Corruption Layer</name>
+    <description>
+        Anti-Corruption Layer for Picking microservice.
+        Contains facades for cross-service communication:
+        - InventoryFacade - inventory queries and consumption
+        - AllocationFacade - deallocation and reallocation
+        - OrderFacade - order status updates
+        - WaveFacade - wave progress tracking
+        - RdtDeviceFacade - RDT device communication
+        - ReplenishmentFacade - replenishment triggers
+    </description>
+
+    <dependencies>
+        <!-- Shared Kernel -->
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-shared-kernel</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Web for REST clients -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- WebClient for reactive HTTP calls -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- Resilience4j for circuit breaker -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <!-- Micrometer for metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>3.0.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,204 @@
+package com.maersk.wms.task.rules;
+
+import com.maersk.wms.task.rules.facts.TaskPriorityFacts;
+import com.maersk.wms.task.rules.facts.TaskPriorityResult;
+import com.maersk.wms.task.domain.enums.TaskPriority;
+import com.maersk.wms.task.domain.enums.TaskType;
+import java.time.LocalDateTime;
+import java.time.Duration;
+
+// =========================================
+// Hot Order / VIP Customer Rules
+// =========================================
+
+rule "Hot Order - Critical Priority"
+    salience 100
+    when
+        $facts : TaskPriorityFacts(isHotOrder == true)
+        $result : TaskPriorityResult()
+    then
+        $result.setRecommendedPriority(TaskPriority.CRITICAL);
+        $result.adjustPriorityScore(500);
+        $result.addAppliedRule("Hot Order - Critical Priority");
+end
+
+rule "VIP Customer - High Priority"
+    salience 90
+    when
+        $facts : TaskPriorityFacts(isVipCustomer == true, isHotOrder == false)
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.HIGH.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.HIGH);
+        }
+        $result.adjustPriorityScore(200);
+        $result.addAppliedRule("VIP Customer - High Priority");
+end
+
+rule "Expedited Order - Urgent Priority"
+    salience 85
+    when
+        $facts : TaskPriorityFacts(isExpedited == true)
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.URGENT.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.URGENT);
+        }
+        $result.adjustPriorityScore(300);
+        $result.addAppliedRule("Expedited Order - Urgent Priority");
+end
+
+// =========================================
+// Due Date Based Rules
+// =========================================
+
+rule "Overdue Task - Critical Priority"
+    salience 95
+    when
+        $facts : TaskPriorityFacts(dueDate != null, dueDate.isBefore(LocalDateTime.now()))
+        $result : TaskPriorityResult()
+    then
+        $result.setRecommendedPriority(TaskPriority.CRITICAL);
+        $result.adjustPriorityScore(600);
+        $result.setShouldEscalate(true);
+        $result.addAppliedRule("Overdue Task - Critical Priority");
+        $result.addWarning("Task is overdue");
+end
+
+rule "Due Within 1 Hour - Critical Priority"
+    salience 80
+    when
+        $facts : TaskPriorityFacts(
+            dueDate != null,
+            dueDate.isAfter(LocalDateTime.now()),
+            dueDate.isBefore(LocalDateTime.now().plusHours(1)))
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.CRITICAL.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.CRITICAL);
+        }
+        $result.adjustPriorityScore(400);
+        $result.addAppliedRule("Due Within 1 Hour - Critical Priority");
+end
+
+rule "Due Within 4 Hours - Urgent Priority"
+    salience 70
+    when
+        $facts : TaskPriorityFacts(
+            dueDate != null,
+            dueDate.isAfter(LocalDateTime.now().plusHours(1)),
+            dueDate.isBefore(LocalDateTime.now().plusHours(4)))
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.URGENT.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.URGENT);
+        }
+        $result.adjustPriorityScore(200);
+        $result.addAppliedRule("Due Within 4 Hours - Urgent Priority");
+end
+
+// =========================================
+// Task Type Rules
+// =========================================
+
+rule "Emergency Replenishment - Critical Priority"
+    salience 75
+    when
+        $facts : TaskPriorityFacts(taskType == TaskType.EMERGENCY_REPLENISHMENT)
+        $result : TaskPriorityResult()
+    then
+        $result.setRecommendedPriority(TaskPriority.CRITICAL);
+        $result.adjustPriorityScore(450);
+        $result.addAppliedRule("Emergency Replenishment - Critical Priority");
+end
+
+rule "Demand Replenishment - High Priority"
+    salience 65
+    when
+        $facts : TaskPriorityFacts(taskType == TaskType.DEMAND_REPLENISHMENT)
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.HIGH.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.HIGH);
+        }
+        $result.adjustPriorityScore(150);
+        $result.addAppliedRule("Demand Replenishment - High Priority");
+end
+
+rule "Cycle Count - Low Priority"
+    salience 20
+    when
+        $facts : TaskPriorityFacts(taskType == TaskType.CYCLE_COUNT)
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null) {
+            $result.setRecommendedPriority(TaskPriority.LOW);
+        }
+        $result.addAppliedRule("Cycle Count - Low Priority");
+end
+
+// =========================================
+// Age-Based Escalation Rules
+// =========================================
+
+rule "Task Age Escalation - Over 2 Hours"
+    salience 50
+    when
+        $facts : TaskPriorityFacts(ageMinutes != null, ageMinutes > 120)
+        $result : TaskPriorityResult()
+    then
+        $result.setShouldEscalate(true);
+        $result.setEscalationMinutes(120);
+        $result.adjustPriorityScore(100);
+        $result.addAppliedRule("Task Age Escalation - Over 2 Hours");
+end
+
+rule "Task Age Escalation - Over 4 Hours"
+    salience 55
+    when
+        $facts : TaskPriorityFacts(ageMinutes != null, ageMinutes > 240)
+        $result : TaskPriorityResult()
+    then
+        $result.setShouldEscalate(true);
+        $result.setEscalationMinutes(240);
+        $result.adjustPriorityScore(200);
+        $result.addAppliedRule("Task Age Escalation - Over 4 Hours");
+        $result.addWarning("Task has been pending for over 4 hours");
+end
+
+// =========================================
+// High Value Order Rules
+// =========================================
+
+rule "High Value Order - Elevated Priority"
+    salience 60
+    when
+        $facts : TaskPriorityFacts(orderValue != null, orderValue > 10000)
+        $result : TaskPriorityResult()
+    then
+        if ($result.getRecommendedPriority() == null ||
+            $result.getRecommendedPriority().getValue() > TaskPriority.HIGH.getValue()) {
+            $result.setRecommendedPriority(TaskPriority.HIGH);
+        }
+        $result.adjustPriorityScore(150);
+        $result.addAppliedRule("High Value Order - Elevated Priority");
+end
+
+// =========================================
+// Default Priority Rule
+// =========================================
+
+rule "Default Priority - Normal"
+    salience 1
+    when
+        $facts : TaskPriorityFacts()
+        $result : TaskPriorityResult(recommendedPriority == null)
+    then
+        $result.setRecommendedPriority(TaskPriority.NORMAL);
+        $result.addAppliedRule("Default Priority - Normal");
+end

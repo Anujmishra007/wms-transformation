@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>wms-transformation</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>wms-shared-libs</artifactId>
+    <packaging>pom</packaging>
+    <name>WMS Shared Libraries</name>
+    <description>Shared libraries used across all WMS microservices</description>
+
+    <modules>
+        <!-- Core shared kernel - must be first (no dependencies on other modules) -->
+        <module>wms-shared-kernel</module>
+        <!-- Common utilities -->
+        <module>wms-common</module>
+        <!-- Domain events infrastructure -->
+        <module>wms-domain-events</module>
+        <!-- Event contracts for inter-service communication -->
+        <module>wms-event-contracts</module>
+        <!-- Infrastructure utilities (multi-tenant, caching, etc.) -->
+        <module>wms-infrastructure</module>
+        <!-- Test support utilities -->
+        <module>wms-test-support</module>
+    </modules>
+</project>

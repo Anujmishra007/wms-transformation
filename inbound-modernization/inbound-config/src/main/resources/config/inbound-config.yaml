@@ -1,0 +1,71 @@
+# Inbound Domain Configuration
+# Client-specific settings for receiving, putaway, and quality inspection
+
+defaults:
+  receiving:
+    overReceiveAllowed: false
+    overReceiveTolerancePercent: 0
+    blindReceiveAllowed: false
+    asnRequired: false
+    poRequired: false
+  putaway:
+    strategy: DIRECTED
+    autoGenerate: true
+    consolidationAllowed: true
+    mixedLotAllowed: false
+  quality:
+    inspectionEnabled: false
+    defaultSamplePercent: 0
+  shelfLife:
+    minPercent: 50
+    expirationRequired: false
+  lpn:
+    required: true
+    autoGenerate: true
+    prefix: LP
+  lot:
+    required: false
+    autoGenerate: false
+
+clients:
+  NIKE:
+    receiving:
+      overReceiveAllowed: true
+      overReceiveTolerancePercent: 5
+      asnRequired: true
+    putaway:
+      strategy: VELOCITY
+      consolidationAllowed: true
+    quality:
+      inspectionEnabled: true
+      defaultSamplePercent: 10
+    shelfLife:
+      minPercent: 75
+      expirationRequired: true
+
+  ADIDAS:
+    receiving:
+      overReceiveAllowed: false
+      blindReceiveAllowed: false
+      asnRequired: true
+      poRequired: true
+    putaway:
+      strategy: DIRECTED
+      consolidationAllowed: false
+      mixedLotAllowed: false
+    quality:
+      inspectionEnabled: true
+      defaultSamplePercent: 5
+    shelfLife:
+      minPercent: 60
+
+  PUMA:
+    receiving:
+      overReceiveAllowed: true
+      overReceiveTolerancePercent: 10
+      blindReceiveAllowed: true
+    putaway:
+      strategy: RANDOM
+      autoGenerate: true
+    quality:
+      inspectionEnabled: false

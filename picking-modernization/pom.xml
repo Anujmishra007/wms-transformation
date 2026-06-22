@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.maersk.wms</groupId>
+    <artifactId>picking-modernization</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Picking Modernization - FN839 Piece Pick</name>
+    <description>
+        FN839 Piece Pick Modernization
+        - 8 screens (4640-4647)
+        - 40+ REST APIs
+        - 93+ legacy extension SPs replaced
+        - Event-driven with Temporal workflow and Drools rules
+    </description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.3</version>
+        <relativePath/>
+    </parent>
+
+    <modules>
+        <!-- Shared Kernel - must be first as other modules depend on it -->
+        <module>picking-shared-kernel</module>
+        <!-- Anti-Corruption Layer - facades for cross-service communication -->
+        <module>picking-acl</module>
+        <!-- Domain layer with bounded contexts -->
+        <module>picking-domain</module>
+        <module>picking-infrastructure</module>
+        <module>picking-kafka</module>
+        <module>picking-rules</module>
+        <module>picking-variation</module>
+        <module>picking-service</module>
+        <module>picking-activity</module>
+        <module>picking-workflow</module>
+        <module>picking-legacy-bridge</module>
+        <module>picking-plugin</module>
+        <module>picking-api</module>
+        <module>picking-config</module>
+        <module>picking-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <temporal.version>1.22.3</temporal.version>
+        <drools.version>9.44.0.Final</drools.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <springdoc.version>2.5.0</springdoc.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Shared Libraries from wms-shared-libs -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-domain-events</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-test-support</artifactId>
+                <version>${project.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Internal Picking Modules -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-kafka</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-rules</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-variation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-activity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-workflow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-legacy-bridge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>picking-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Temporal -->
+            <dependency>
+                <groupId>io.temporal</groupId>
+                <artifactId>temporal-sdk</artifactId>
+                <version>${temporal.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.temporal</groupId>
+                <artifactId>temporal-testing</artifactId>
+                <version>${temporal.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Drools -->
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-core</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-compiler</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-mvel</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.kie</groupId>
+                <artifactId>kie-api</artifactId>
+                <version>${drools.version}</version>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Kafka -->
+            <dependency>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka</artifactId>
+                <version>3.2.0</version>
+            </dependency>
+
+            <!-- SpringDoc OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- Karate Testing -->
+            <dependency>
+                <groupId>com.intuit.karate</groupId>
+                <artifactId>karate-junit5</artifactId>
+                <version>1.4.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Testcontainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mssqlserver</artifactId>
+                <version>1.19.7</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok-mapstruct-binding</artifactId>
+                                <version>0.2.0</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

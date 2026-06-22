@@ -1,0 +1,70 @@
+# Task Management Configuration
+# Default configuration for all clients/facilities
+
+# Auto-assignment settings
+autoAssign:
+  enabled: true
+  strategy: LEAST_LOADED  # ROUND_ROBIN, LEAST_LOADED, ZONE_PROXIMITY, SKILL_MATCH
+  retryCount: 3
+  retryDelaySeconds: 30
+  queueIfNoUserAvailable: true
+
+# Priority settings
+priority:
+  escalation:
+    enabled: true
+    thresholdMinutes: 60
+    increment: 1
+  scoring:
+    vipCustomerBonus: 200
+    hotOrderBonus: 500
+    expeditedBonus: 300
+
+# Assignment settings
+assignment:
+  maxTasksPerUser: 10
+  assignmentTimeoutMinutes: 30
+  requireAcceptance: false
+
+# Task settings
+task:
+  defaultTimeoutMinutes: 120
+  allowShortage: true
+  requireReasonForShort: true
+  allowPartialCompletion: true
+
+# Routing settings
+routing:
+  enableZoneRouting: true
+  optimizePickPath: true
+  consolidateByZone: true
+
+# Batching settings
+batching:
+  enabled: true
+  defaultSize: 20
+  maxSize: 50
+  groupByZone: true
+  groupByTaskType: true
+
+# Queue settings
+queue:
+  defaultProcessingOrder: PRIORITY  # FIFO, LIFO, PRIORITY, ZONE_OPTIMIZED
+  maxQueueDepth: 1000
+  alertThreshold: 800
+
+# Work group settings
+workGroup:
+  defaultMaxUsers: 20
+  defaultMaxTasks: 200
+  autoBalanceEnabled: true
+
+# Feature flags
+features:
+  enableAutoAssignment: true
+  enablePriorityEscalation: true
+  enableRulesEngine: true
+  enableWorkflowOrchestration: true
+  enableEventPublishing: true
+  enableLegacyBridge: false
+  enableMetrics: true

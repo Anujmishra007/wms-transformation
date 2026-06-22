@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>wms-transformation</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>printing-service</artifactId>
+    <packaging>pom</packaging>
+    <name>Printing Service</name>
+    <description>
+        Printing Service - Label Generation, Print Job Management, Printer Management
+
+        Bounded Contexts:
+        - Label Generation: Label creation, rendering, template management
+        - Print Job Management: Job lifecycle, queuing, execution
+        - Printer Management: Printer registration, status, queue configuration
+
+        Key Tables: LabelFormat, PrinterConfig, PrintQueue, PrintJob
+        Events: LabelGenerated, LabelPrinted, PrintJobCompleted, PrinterStatusChanged
+    </description>
+
+    <modules>
+        <module>printing-shared-kernel</module>
+        <module>printing-domain</module>
+        <module>printing-acl</module>
+        <module>printing-service-core</module>
+        <module>printing-infrastructure</module>
+        <module>printing-api</module>
+        <module>printing-app</module>
+        <module>printing-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-boot.version>3.5.3</spring-boot.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <lombok.version>1.18.30</lombok.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-service-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>printing-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Common dependencies for all modules -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

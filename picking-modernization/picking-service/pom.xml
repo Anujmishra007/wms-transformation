@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>picking-modernization</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>picking-service</artifactId>
+    <name>Picking Service - Business Logic</name>
+    <description>
+        Service implementations for 5 bounded contexts:
+        - TaskExecutionServiceImpl
+        - ProgressionServiceImpl
+        - ShortsHandlingServiceImpl
+        - CancellationServiceImpl
+        - ListManagementServiceImpl
+    </description>
+
+    <dependencies>
+        <!-- Internal Modules -->
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-shared-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-domain</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-acl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-plugin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-rules</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>picking-variation</artifactId>
+        </dependency>
+
+        <!-- Spring -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

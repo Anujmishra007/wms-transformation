@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+
+    <kbase name="masterdata-item" packages="com.maersk.wms.masterdata.rules">
+        <ksession name="masterdata-item-rules"/>
+    </kbase>
+
+    <kbase name="masterdata-location" packages="com.maersk.wms.masterdata.rules">
+        <ksession name="masterdata-location-rules"/>
+    </kbase>
+
+    <kbase name="masterdata-customer" packages="com.maersk.wms.masterdata.rules">
+        <ksession name="masterdata-customer-rules"/>
+    </kbase>
+
+    <kbase name="masterdata-carrier" packages="com.maersk.wms.masterdata.rules">
+        <ksession name="masterdata-carrier-rules"/>
+    </kbase>
+
+</kmodule>

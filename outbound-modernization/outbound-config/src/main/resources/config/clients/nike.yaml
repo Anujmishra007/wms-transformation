@@ -1,0 +1,41 @@
+# Nike Client Configuration - Outbound Operations
+
+allocation:
+  strategy: FEFO
+  autoEnabled: true
+  partialAllowed: true
+  retryCount: 3
+  expirationCheck: true
+  minDaysToExpiration: 45
+
+wave:
+  groupingStrategy: CARRIER
+  maxOrders: 200
+  maxLines: 2000
+  maxUnits: 20000
+  autoRelease: true
+
+packing:
+  cartonization: MULTI_SKU
+  giftWrap: true
+  defaultCarton: NIKE_STD
+  packSlipRequired: true
+  packSlipFormat: NIKE_BRANDED
+
+shipping:
+  defaultCarrier: FEDEX
+  rateShop: true
+  manifestRequired: true
+  trackingRequired: true
+  labelFormat: ZPL
+  commercialInvoice: true
+
+notification:
+  shipNotification: true
+  asn: true
+  format: EDI_856
+
+custom:
+  gift_wrap_sku: NIKE-GIFTWRAP
+  branded_packaging: true
+  sustainability_label: true

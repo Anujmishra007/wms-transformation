@@ -1,0 +1,118 @@
+spring:
+  application:
+    name: inventory-service
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # Database Configuration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${DB_USERNAME:inventory}
+    password: ${DB_PASSWORD:inventory}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: inventory-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      acks: all
+      retries: 3
+    listener:
+      ack-mode: record
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Kafka Topics Configuration
+kafka:
+  topics:
+    inbound-operations:
+      receipt-completed: inbound-operations.receipt-completed
+      receipt-line-received: inbound-operations.receipt-line-received
+      putaway-completed: inbound-operations.putaway-completed
+      return-received: inbound-operations.return-received
+    packing-operations:
+      pack-completed: packing-operations.pack-completed
+      carton-closed: packing-operations.carton-closed
+      pallet-completed: packing-operations.pallet-completed
+  consumer-groups:
+    inventory: inventory-service
+
+# External Services Configuration
+services:
+  inbound-operations:
+    url: ${INBOUND_SERVICE_URL:http://inbound-operations-service:8080}
+  packing-operations:
+    url: ${PACKING_SERVICE_URL:http://packing-operations-service:8080}
+  picking-operations:
+    url: ${PICKING_SERVICE_URL:http://picking-operations-service:8080}
+  outbound-operations:
+    url: ${OUTBOUND_SERVICE_URL:http://outbound-operations-service:8080}
+  master-data:
+    url: ${MASTER_DATA_SERVICE_URL:http://master-data-service:8080}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.maersk.wms.inventory: DEBUG
+    org.springframework.kafka: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Inventory Service Specific Configuration
+inventory:
+  allocation:
+    default-fifo-strategy: FIFO_DATE
+    max-allocation-lines: 100
+  counting:
+    default-recount-threshold-percent: 5.0
+    default-approval-threshold-percent: 10.0
+    max-recounts: 3
+  nesting:
+    max-nesting-depth: 4
+    allow-mixed-skus-in-container: false

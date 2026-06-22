@@ -1,0 +1,204 @@
+package com.maersk.wms.outbound.rules
+
+import com.maersk.wms.outbound.rules.AllocationRuleFacts
+import com.maersk.wms.outbound.rules.AllocationRuleFacts.InventoryCandidate
+import com.maersk.wms.outbound.rules.AllocationRuleResult
+import com.maersk.wms.outbound.rules.AllocationRuleResult.AllocationDecision
+
+import java.math.BigDecimal
+import java.time.LocalDateTime
+
+// =============================================================================
+// ALLOCATION STRATEGY RULES
+// =============================================================================
+
+rule "FIFO Strategy - Sort by Receipt Date"
+    salience 100
+    when
+        $facts : AllocationRuleFacts()
+        $result : AllocationRuleResult(allocationStrategy == "FIFO")
+    then
+        // FIFO: First In First Out - allocate oldest inventory first
+        // Candidates should be sorted by receiptDate ascending
+        modify($result) {
+            addWarning("Using FIFO allocation strategy")
+        }
+end
+
+rule "FEFO Strategy - Sort by Expiration Date"
+    salience 100
+    when
+        $facts : AllocationRuleFacts(clientConfig["allocationStrategy"] == "FEFO")
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            setAllocationStrategy("FEFO"),
+            addWarning("Using FEFO allocation strategy - earliest expiration first")
+        }
+end
+
+rule "LIFO Strategy - Sort by Receipt Date Descending"
+    salience 100
+    when
+        $facts : AllocationRuleFacts(clientConfig["allocationStrategy"] == "LIFO")
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            setAllocationStrategy("LIFO"),
+            addWarning("Using LIFO allocation strategy - newest inventory first")
+        }
+end
+
+// =============================================================================
+// VALIDATION RULES
+// =============================================================================
+
+rule "Validate Required Quantity"
+    salience 200
+    when
+        $facts : AllocationRuleFacts(requiredQty == null || requiredQty.compareTo(BigDecimal.ZERO) <= 0)
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addError("Required quantity must be greater than zero")
+        }
+end
+
+rule "Validate SKU Required"
+    salience 200
+    when
+        $facts : AllocationRuleFacts(sku == null || sku.isEmpty())
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addError("SKU is required for allocation")
+        }
+end
+
+rule "No Inventory Available"
+    salience 150
+    when
+        $facts : AllocationRuleFacts(candidates == null || candidates.isEmpty())
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addError("No inventory available for allocation"),
+            setShortQty($facts.getRequiredQty())
+        }
+end
+
+// =============================================================================
+// EXPIRATION RULES
+// =============================================================================
+
+rule "Exclude Expired Inventory"
+    salience 90
+    when
+        $facts : AllocationRuleFacts()
+        $candidate : AllocationRuleFacts.InventoryCandidate(
+            expirationDate != null,
+            expirationDate.isBefore(LocalDateTime.now())
+        ) from $facts.getCandidates()
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addWarning("Excluding expired inventory at location: " + $candidate.getLocation())
+        }
+end
+
+rule "Warn Near Expiration - 30 Days"
+    salience 80
+    when
+        $facts : AllocationRuleFacts()
+        $candidate : AllocationRuleFacts.InventoryCandidate(
+            expirationDate != null,
+            expirationDate.isAfter(LocalDateTime.now()),
+            expirationDate.isBefore(LocalDateTime.now().plusDays(30))
+        ) from $facts.getCandidates()
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addWarning("Inventory at " + $candidate.getLocation() + " expires within 30 days")
+        }
+end
+
+// =============================================================================
+// LOCATION PRIORITY RULES
+// =============================================================================
+
+rule "Prefer Pick Face Locations"
+    salience 70
+    when
+        $facts : AllocationRuleFacts()
+        $candidate : AllocationRuleFacts.InventoryCandidate(
+            locationType == "PICKFACE"
+        ) from $facts.getCandidates()
+        $result : AllocationRuleResult()
+    then
+        // Pick face locations should have higher priority
+end
+
+rule "Use Reserve Only When Pick Face Empty"
+    salience 60
+    when
+        $facts : AllocationRuleFacts()
+        not AllocationRuleFacts.InventoryCandidate(
+            locationType == "PICKFACE",
+            availableQty.compareTo(BigDecimal.ZERO) > 0
+        ) from $facts.getCandidates()
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addWarning("No pick face inventory available, using reserve locations")
+        }
+end
+
+// =============================================================================
+// HAZMAT AND SPECIAL HANDLING RULES
+// =============================================================================
+
+rule "Hazmat Allocation Restrictions"
+    salience 85
+    when
+        $facts : AllocationRuleFacts(clientConfig["hazmatRestricted"] == "true")
+        $result : AllocationRuleResult()
+    then
+        modify($result) {
+            addWarning("Hazmat restrictions apply to this allocation")
+        }
+end
+
+// =============================================================================
+// ALLOCATION EXECUTION
+// =============================================================================
+
+rule "Allocate FIFO"
+    salience 10
+    when
+        $facts : AllocationRuleFacts(requiredQty.compareTo(BigDecimal.ZERO) > 0)
+        $result : AllocationRuleResult(
+            allocationAllowed == true,
+            allocationStrategy == "FIFO",
+            totalAllocated.compareTo($facts.getRequiredQty()) < 0
+        )
+        $candidate : AllocationRuleFacts.InventoryCandidate(
+            availableQty.compareTo(BigDecimal.ZERO) > 0,
+            expirationDate == null || expirationDate.isAfter(LocalDateTime.now())
+        ) from $facts.getCandidates()
+    then
+        BigDecimal remaining = $facts.getRequiredQty().subtract($result.getTotalAllocated());
+        BigDecimal toAllocate = remaining.min($candidate.getAvailableQty());
+
+        AllocationDecision decision = AllocationDecision.builder()
+            .location($candidate.getLocation())
+            .lpn($candidate.getLpn())
+            .lot($candidate.getLot())
+            .quantity(toAllocate)
+            .priority($candidate.getZonePriority())
+            .reason("FIFO allocation")
+            .build();
+
+        modify($result) {
+            addAllocation(decision)
+        }
+end

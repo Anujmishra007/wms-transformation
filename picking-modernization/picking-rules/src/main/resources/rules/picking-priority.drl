@@ -1,0 +1,47 @@
+package com.maersk.wms.picking.rules
+
+import com.maersk.wms.picking.rules.TaskPriorityFacts
+import com.maersk.wms.picking.domain.PickTask
+import java.util.Comparator
+import java.util.stream.Collectors
+
+/**
+ * Task prioritization rules for FN839 Piece Pick.
+ * Replaces hardcoded priority logic in legacy SPs.
+ */
+
+rule "Prioritize Rush Orders"
+    salience 100
+    when
+        $facts : TaskPriorityFacts(tasks != null)
+        $task : PickTask(priority >= 90) from $facts.tasks
+    then
+        // Rush orders get highest priority
+        modify($task) { setPriority(100) }
+end
+
+rule "Prioritize Same Zone Tasks"
+    salience 50
+    when
+        $facts : TaskPriorityFacts(tasks != null, tasks.size() > 1)
+    then
+        // Sort by zone to minimize travel
+        java.util.List sorted = $facts.getTasks().stream()
+            .sorted(Comparator.comparing(PickTask::getZone)
+                    .thenComparing(PickTask::getAisle)
+                    .thenComparing(PickTask::getPriority, Comparator.reverseOrder()))
+            .collect(Collectors.toList());
+        $facts.setPrioritizedTasks(sorted);
+end
+
+rule "Default Priority Sort"
+    salience 10
+    when
+        $facts : TaskPriorityFacts(prioritizedTasks == null, tasks != null)
+    then
+        java.util.List sorted = $facts.getTasks().stream()
+            .sorted(Comparator.comparingInt(PickTask::getPriority).reversed()
+                    .thenComparing(PickTask::getCreatedAt))
+            .collect(Collectors.toList());
+        $facts.setPrioritizedTasks(sorted);
+end

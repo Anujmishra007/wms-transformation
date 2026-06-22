@@ -1,0 +1,30 @@
+# Korea Region Configuration for FN839 Picking
+region:
+  code: KR
+  name: South Korea
+  timezone: Asia/Seoul
+
+localization:
+  default_language: ko
+  date_format: yyyy-MM-dd
+  time_format: HH:mm:ss
+  decimal_separator: "."
+  thousand_separator: ","
+
+warehouses:
+  - code: KRIC01
+    name: Korea IC Warehouse 1
+    address: Incheon, South Korea
+  - code: KRIC02
+    name: Korea IC Warehouse 2
+    address: Incheon, South Korea
+
+regulatory:
+  customs_integration: true
+  export_documentation: true
+  hazmat_tracking: true
+
+label_formats:
+  shipping: KOREA_SHIPPING_V2
+  picking: KOREA_PICK_LABEL
+  packing: KOREA_PACK_LABEL

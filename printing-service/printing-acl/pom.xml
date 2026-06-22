@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>printing-service</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>printing-acl</artifactId>
+    <name>Printing Service - Anti-Corruption Layer</name>
+    <description>
+        Anti-Corruption Layer for cross-service communication:
+        - InventoryFacade: LPN, location, SKU data for labels
+        - OutboundFacade: Shipment, order, carton data for shipping labels
+        - InboundFacade: ASN, receipt, receiving data for receiving labels
+        - MasterDataFacade: Warehouse, storer, carrier data
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>printing-shared-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+    </dependencies>
+</project>

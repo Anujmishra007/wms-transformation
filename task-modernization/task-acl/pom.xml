@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>task-modernization</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>task-acl</artifactId>
+    <name>Task Modernization - Anti-Corruption Layer</name>
+    <description>
+        Anti-Corruption Layer for cross-service communication:
+        - InventoryFacade (inventory data and locations)
+        - OrderFacade (order details and priorities)
+        - UserFacade (user authorization and skills)
+        - DeviceFacade (RDT device integration)
+
+        Isolates domain from external service details.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>task-shared-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+    </dependencies>
+</project>

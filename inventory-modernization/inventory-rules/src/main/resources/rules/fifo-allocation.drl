@@ -1,0 +1,59 @@
+package com.maersk.wms.inventory.rules
+
+import com.maersk.wms.inventory.rules.AllocationFacts
+import com.maersk.wms.inventory.domain.LotxLocxId
+import java.util.Comparator
+import java.util.stream.Collectors
+
+/**
+ * FIFO allocation rules - supports 20+ variants.
+ */
+
+rule "Standard FIFO - Receipt Date"
+    salience 100
+    when
+        $facts : AllocationFacts(fifoVariant == "STANDARD" || fifoVariant == null)
+    then
+        java.util.List sorted = $facts.getInventory().stream()
+            .filter(i -> i.isAvailableForAllocation())
+            .sorted(Comparator.comparing(LotxLocxId::getReceiptDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .collect(Collectors.toList());
+        $facts.setSortedInventory(sorted);
+end
+
+rule "FEFO - First Expiry First Out"
+    salience 100
+    when
+        $facts : AllocationFacts(fifoVariant == "FEFO")
+    then
+        java.util.List sorted = $facts.getInventory().stream()
+            .filter(i -> i.isAvailableForAllocation())
+            .sorted(Comparator.comparing(LotxLocxId::getLottable02, Comparator.nullsLast(Comparator.naturalOrder())))
+            .collect(Collectors.toList());
+        $facts.setSortedInventory(sorted);
+end
+
+rule "LIFO - Last In First Out"
+    salience 100
+    when
+        $facts : AllocationFacts(fifoVariant == "LIFO")
+    then
+        java.util.List sorted = $facts.getInventory().stream()
+            .filter(i -> i.isAvailableForAllocation())
+            .sorted(Comparator.comparing(LotxLocxId::getReceiptDate, Comparator.nullsLast(Comparator.reverseOrder())))
+            .collect(Collectors.toList());
+        $facts.setSortedInventory(sorted);
+end
+
+rule "Location Priority FIFO"
+    salience 100
+    when
+        $facts : AllocationFacts(fifoVariant == "LOCATION_PRIORITY")
+    then
+        java.util.List sorted = $facts.getInventory().stream()
+            .filter(i -> i.isAvailableForAllocation())
+            .sorted(Comparator.comparing(LotxLocxId::getLocation)
+                    .thenComparing(LotxLocxId::getReceiptDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .collect(Collectors.toList());
+        $facts.setSortedInventory(sorted);
+end

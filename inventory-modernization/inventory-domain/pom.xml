@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>inventory-modernization</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>inventory-domain</artifactId>
+    <name>Inventory Domain - Bounded Contexts, Services, Repositories</name>
+    <description>
+        Domain layer containing:
+        - Bounded Contexts: Core, Lifecycle, Structure, Discovery, Controls
+        - Domain models (Inventory, InventoryTransaction, InventoryHierarchy, CountType)
+        - Domain services (interfaces and implementations)
+        - Domain events
+        - Repository interfaces
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>inventory-shared-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>wms-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+    </dependencies>
+</project>
