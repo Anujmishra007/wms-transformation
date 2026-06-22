@@ -16,11 +16,15 @@ public class OutboundPluginContext {
     private String clientCode;
     private String countryCode;
     private String warehouseCode;
+    private String facilityCode;
     private String userId;
     private String operationType;
 
     @Builder.Default
     private Map<String, Object> attributes = new HashMap<>();
+
+    @Builder.Default
+    private Map<String, String> parameters = new HashMap<>();
 
     @SuppressWarnings("unchecked")
     public <T> T getAttribute(String key) {

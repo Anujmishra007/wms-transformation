@@ -36,19 +36,23 @@ public class InboundEventConsumer {
 
         try {
             for (InboundOperationsEvents.ReceiptLineDetail line : event.receiptLines()) {
-                InventoryCreation creation = new InventoryCreation(
-                        line.skuKey(),
-                        line.lotKey(),
-                        line.locationKey(),
-                        line.lpnKey(),
-                        event.storerKey(),
-                        event.warehouseKey(),
-                        line.receivedQuantity(),
-                        line.lottables(),
-                        event.receiptKey(),
-                        null, // returnKey
-                        event.receivedBy()
-                );
+                InventoryCreation creation = InventoryCreation.builder()
+                        .source(InventoryCreation.CreationSource.RECEIPT)
+                        .sourceKey(event.receiptKey().value())
+                        .sourceLineNumber(line.lineNumber())
+                        .skuKey(line.skuKey())
+                        .lotKey(line.lotKey())
+                        .locationKey(line.locationKey())
+                        .lpnKey(line.lpnKey())
+                        .storerKey(event.storerKey())
+                        .warehouseKey(event.warehouseKey())
+                        .quantity(line.receivedQuantity())
+                        .lottables(line.lottables())
+                        .receiptKey(event.receiptKey())
+                        .requestedBy(event.receivedBy())
+                        .requestedAt(event.occurredAt())
+                        .status(InventoryCreation.CreationStatus.PENDING)
+                        .build();
 
                 lifecycleService.createFromReceipt(creation);
                 log.debug("Created inventory from receipt line: receiptKey={}, line={}",
@@ -71,19 +75,23 @@ public class InboundEventConsumer {
                 event.receiptKey(), event.lineNumber(), event.receivedQuantity());
 
         try {
-            InventoryCreation creation = new InventoryCreation(
-                    event.skuKey(),
-                    event.lotKey(),
-                    event.locationKey(),
-                    event.lpnKey(),
-                    event.storerKey(),
-                    event.warehouseKey(),
-                    event.receivedQuantity(),
-                    event.lottables(),
-                    event.receiptKey(),
-                    null, // returnKey
-                    event.receivedBy()
-            );
+            InventoryCreation creation = InventoryCreation.builder()
+                    .source(InventoryCreation.CreationSource.RECEIPT)
+                    .sourceKey(event.receiptKey().value())
+                    .sourceLineNumber(event.lineNumber())
+                    .skuKey(event.skuKey())
+                    .lotKey(event.lotKey())
+                    .locationKey(event.locationKey())
+                    .lpnKey(event.lpnKey())
+                    .storerKey(event.storerKey())
+                    .warehouseKey(event.warehouseKey())
+                    .quantity(event.receivedQuantity())
+                    .lottables(event.lottables())
+                    .receiptKey(event.receiptKey())
+                    .requestedBy(event.receivedBy())
+                    .requestedAt(event.occurredAt())
+                    .status(InventoryCreation.CreationStatus.PENDING)
+                    .build();
 
             lifecycleService.createFromReceipt(creation);
             log.debug("Created inventory from receipt line: receiptKey={}, line={}",
@@ -120,19 +128,22 @@ public class InboundEventConsumer {
 
         try {
             for (InboundOperationsEvents.ReturnLineDetail line : event.returnLines()) {
-                InventoryCreation creation = new InventoryCreation(
-                        line.skuKey(),
-                        line.lotKey(),
-                        line.locationKey(),
-                        line.lpnKey(),
-                        event.storerKey(),
-                        event.warehouseKey(),
-                        line.returnedQuantity(),
-                        line.lottables(),
-                        null, // receiptKey
-                        event.returnKey(),
-                        event.receivedBy()
-                );
+                InventoryCreation creation = InventoryCreation.builder()
+                        .source(InventoryCreation.CreationSource.RETURN_RECEIPT)
+                        .sourceKey(event.returnKey())
+                        .sourceLineNumber(line.lineNumber())
+                        .skuKey(line.skuKey())
+                        .lotKey(line.lotKey())
+                        .locationKey(line.locationKey())
+                        .lpnKey(line.lpnKey())
+                        .storerKey(event.storerKey())
+                        .warehouseKey(event.warehouseKey())
+                        .quantity(line.returnedQuantity())
+                        .lottables(line.lottables())
+                        .requestedBy(event.receivedBy())
+                        .requestedAt(event.occurredAt())
+                        .status(InventoryCreation.CreationStatus.PENDING)
+                        .build();
 
                 lifecycleService.createFromReturn(creation);
                 log.debug("Created inventory from return: returnKey={}, line={}",

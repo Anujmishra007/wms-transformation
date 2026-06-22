@@ -1,6 +1,8 @@
 package com.maersk.wms.outbound.service.shipping;
 
 import com.maersk.wms.outbound.domain.shipping.*;
+import com.maersk.wms.outbound.domain.shipping.dto.LabelGenerationRequest;
+import com.maersk.wms.outbound.domain.shipping.dto.LabelValidationResult;
 import com.maersk.wms.outbound.domain.repository.MbolRepository;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
 import com.maersk.wms.outbound.plugin.OutboundPluginRegistry;

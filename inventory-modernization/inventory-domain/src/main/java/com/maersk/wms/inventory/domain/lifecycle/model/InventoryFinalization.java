@@ -2,6 +2,7 @@ package com.maersk.wms.inventory.domain.lifecycle.model;
 
 import com.maersk.wms.inventory.shared.kernel.identifiers.*;
 import com.maersk.wms.inventory.shared.kernel.valueobjects.*;
+import com.maersk.wms.inventory.domain.core.model.InventorySnapshot;
 
 import lombok.*;
 import java.time.Instant;
@@ -34,6 +35,11 @@ public class InventoryFinalization {
     // For transaction completion
     private TransactionKey transactionKey;
     private List<TransactionKey> relatedTransactionKeys;
+
+    // For service compatibility
+    private String period;
+    private InventorySnapshot.SnapshotType snapshotType;
+    private String notes;
 
     // For reconciliation
     private Quantity expectedQuantity;
@@ -128,4 +134,32 @@ public class InventoryFinalization {
         this.pendingEvents = new java.util.ArrayList<>(this.pendingEvents);
         this.pendingEvents.add(eventType);
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONVENIENCE CONSTRUCTOR (for service compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public InventoryFinalization(List<InventoryKey> inventoryKeys, String period,
+                                  InventorySnapshot.SnapshotType snapshotType, String notes,
+                                  UserKey finalizedBy) {
+        this.inventoryKeys = inventoryKeys;
+        this.period = period;
+        this.snapshotType = snapshotType;
+        this.notes = notes;
+        this.requestedBy = finalizedBy;
+        this.requestedAt = Instant.now();
+        this.pendingEvents = List.of();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public List<InventoryKey> inventoryKeys() { return inventoryKeys; }
+    public String period() { return period; }
+    public InventorySnapshot.SnapshotType snapshotType() { return snapshotType; }
+    public String notes() { return notes; }
+    public UserKey finalizedBy() { return requestedBy; }
+    public FinalizationType finalizationType() { return finalizationType; }
+    public WarehouseKey warehouseKey() { return warehouseKey; }
 }

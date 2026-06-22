@@ -4,9 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.maersk.wms</groupId>
+    <parent>
+        <groupId>com.maersk.wms</groupId>
+        <artifactId>wms-transformation</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
     <artifactId>inbound-modernization</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Inbound Modernization - Inbound Bounded Context</name>
     <description>
@@ -35,13 +39,6 @@
         - Anti-Corruption Layer for subdomain communication
         - Future-proof for microservice extraction
     </description>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.3</version>
-        <relativePath/>
-    </parent>
 
     <modules>
         <!-- Shared Kernel (must be first - no dependencies on other inbound modules) -->

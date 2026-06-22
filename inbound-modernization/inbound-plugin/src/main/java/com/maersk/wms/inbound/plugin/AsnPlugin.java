@@ -1,7 +1,7 @@
 package com.maersk.wms.inbound.plugin;
 
-import com.maersk.wms.inbound.domain.Asn;
-import com.maersk.wms.inbound.domain.AsnDetail;
+import com.maersk.wms.inbound.domain.document_service.Asn;
+import com.maersk.wms.inbound.domain.document_service.AsnDetail;
 
 /**
  * Plugin interface for ASN operations.

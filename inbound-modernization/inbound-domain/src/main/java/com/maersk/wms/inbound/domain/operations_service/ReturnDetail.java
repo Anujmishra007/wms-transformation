@@ -25,6 +25,7 @@ public class ReturnDetail {
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for convenience
     private String skuDescription;
     private String packKey;
     private String uom;
@@ -41,10 +42,20 @@ public class ReturnDetail {
 
     // LPN
     private LpnKey lpn;
+    private String lpnKey;  // String representation for builder
+    private String locationKey;
+
+    // Lot/Serial
+    private String lot;
+    private String serialNumber;
 
     // Return reason
     private ReturnReason reason;
+    private String returnReason;  // String representation for builder
     private String reasonDescription;
+
+    // Original order reference
+    private String originalOrderDetailKey;
 
     // Inspection
     private boolean inspectionRequired;
@@ -71,6 +82,10 @@ public class ReturnDetail {
     private LocalDateTime receivedDate;
     private LocalDateTime dispositionDate;
     private LocalDateTime putawayDate;
+
+    // Receiving
+    private String receivedBy;
+    private java.time.Instant receivedAt;
 
     // Audit
     private String addWho;

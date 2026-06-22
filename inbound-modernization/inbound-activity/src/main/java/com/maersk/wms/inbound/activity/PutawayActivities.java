@@ -1,6 +1,6 @@
 package com.maersk.wms.inbound.activity;
 
-import com.maersk.wms.inbound.domain.PutawayTask;
+import com.maersk.wms.inbound.domain.operations_service.PutawayTask;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

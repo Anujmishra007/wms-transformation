@@ -29,8 +29,8 @@ public class AllocationResponse {
                 .allocationIds(result.getAllocationIds());
 
         if (result.getOrder() != null) {
-            builder.orderNumber(result.getOrder().getOrderNumber())
-                    .status(result.getOrder().getStatus().name())
+            builder.orderNumber(result.getOrder().getOrderKey())
+                    .status(result.getOrder().getStatus() != null ? result.getOrder().getStatus().name() : null)
                     .fullyAllocated(result.isSuccess());
         }
 

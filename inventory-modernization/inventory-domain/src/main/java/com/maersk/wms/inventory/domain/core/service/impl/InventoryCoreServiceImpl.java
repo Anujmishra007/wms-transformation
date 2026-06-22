@@ -137,8 +137,7 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
 
         if (availableInventory.isEmpty()) {
             publishAllocationShortage(criteria);
-            return AllocationResult.shortage(criteria.skuKey(), criteria.requiredQuantity(),
-                    Quantity.zero(criteria.requiredQuantity().uom()));
+            return AllocationResult.failed(criteria.requiredQuantity(), "No inventory available for allocation");
         }
 
         List<AllocationResult.AllocationLine> allocationLines = new ArrayList<>();
@@ -164,7 +163,8 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
             // Record transaction
             recordAllocationTransaction(lockedInventory, allocateQty, criteria.orderKey(), allocationKey);
 
-            allocationLines.add(new AllocationResult.AllocationLine(
+            // Use AllocationLine.of() factory method which handles parameter order correctly
+            allocationLines.add(AllocationResult.AllocationLine.of(
                     lockedInventory.inventoryKey(),
                     lockedInventory.locationKey(),
                     lockedInventory.lotKey(),
@@ -176,21 +176,23 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
         }
 
         Quantity allocatedQuantity = criteria.requiredQuantity().subtract(remainingQuantity);
-        AllocationResult result = new AllocationResult(
-                allocationKey,
-                criteria.skuKey(),
-                criteria.orderKey(),
-                allocatedQuantity,
-                remainingQuantity.isPositive() ? remainingQuantity : Quantity.zero(criteria.requiredQuantity().uom()),
-                allocationLines,
-                !remainingQuantity.isPositive()
-        );
+        boolean fullyAllocated = !remainingQuantity.isPositive();
+        Quantity shortQty = fullyAllocated ? Quantity.zero(criteria.requiredQuantity().uom()) : remainingQuantity;
+
+        AllocationResult result;
+        if (fullyAllocated) {
+            result = AllocationResult.success(allocationKey, criteria.skuKey(), criteria.orderKey(),
+                    criteria.requiredQuantity(), allocationLines);
+        } else {
+            result = AllocationResult.partial(allocationKey, criteria.skuKey(), criteria.orderKey(),
+                    criteria.requiredQuantity(), allocatedQuantity, allocationLines);
+        }
 
         // Publish events
         if (result.fullyAllocated()) {
-            publishAllocationComplete(result);
+            publishAllocationComplete(result, criteria.warehouseKey(), criteria.storerKey());
         } else {
-            publishAllocationPartial(result);
+            publishAllocationPartial(result, criteria.warehouseKey());
         }
 
         return result;
@@ -198,9 +200,9 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
 
     private List<Inventory> findInventoryForAllocation(AllocationCriteria criteria) {
         return switch (criteria.fifoStrategy()) {
-            case FIFO_DATE -> inventoryRepository.findBySkuOrderByFifo(criteria.skuKey(), criteria.warehouseKey());
-            case FEFO -> inventoryRepository.findBySkuOrderByExpiry(criteria.skuKey(), criteria.warehouseKey());
-            case LIFO -> inventoryRepository.findBySkuOrderByLot(criteria.skuKey(), criteria.warehouseKey(), true);
+            case FIFO_RECEIPT_DATE -> inventoryRepository.findBySkuOrderByFifo(criteria.skuKey(), criteria.warehouseKey());
+            case FIFO_EXPIRY_DATE -> inventoryRepository.findBySkuOrderByExpiry(criteria.skuKey(), criteria.warehouseKey());
+            case LIFO_RECEIPT_DATE -> inventoryRepository.findBySkuOrderByLot(criteria.skuKey(), criteria.warehouseKey(), true);
             default -> inventoryRepository.findAvailable(criteria.skuKey(), criteria.warehouseKey());
         };
     }
@@ -210,6 +212,11 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
         List<Inventory> allocatedInventory = inventoryRepository.findAllocatedForOrder(
                 new OrderKey(allocationKey.value())); // Simplified lookup
 
+        Quantity totalDeallocated = Quantity.ZERO;
+        SkuKey skuKey = null;
+        OrderKey orderKey = new OrderKey(allocationKey.value());
+        WarehouseKey warehouseKey = null;
+
         for (Inventory inventory : allocatedInventory) {
             Inventory lockedInventory = inventoryRepository.findByKeyForUpdate(inventory.inventoryKey())
                     .orElseThrow(() -> new InventoryNotFoundException(inventory.inventoryKey()));
@@ -218,15 +225,22 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
             lockedInventory.deallocate(deallocatedQty, reason);
             inventoryRepository.save(lockedInventory);
 
+            totalDeallocated = totalDeallocated.add(deallocatedQty);
+            if (skuKey == null) skuKey = lockedInventory.skuKey();
+            if (warehouseKey == null) warehouseKey = lockedInventory.warehouseKey();
+
             // Record transaction
             recordDeallocationTransaction(lockedInventory, deallocatedQty, allocationKey, reason, deallocatedBy);
         }
 
-        // Publish deallocation event
+        // Publish deallocation event with correct signature
         eventPublisher.publishEvent(new AllocationEvents.InventoryDeallocated(
                 allocationKey,
+                orderKey,
+                skuKey,
+                totalDeallocated,
                 reason,
-                deallocatedBy,
+                warehouseKey,
                 Instant.now()
         ));
     }
@@ -259,14 +273,13 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
         // Record transaction
         recordHoldTransaction(inventory, holdCode, reason, appliedBy, true);
 
-        // Publish event
+        // Publish event with correct signature
         eventPublisher.publishEvent(new HoldEvents.HoldApplied(
                 inventoryKey,
-                inventory.skuKey(),
-                inventory.locationKey(),
                 holdCode,
                 reason,
                 appliedBy,
+                inventory.warehouseKey(),
                 Instant.now()
         ));
     }
@@ -287,14 +300,13 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
         // Record transaction
         recordHoldTransaction(inventory, previousHoldCode, reason, releasedBy, false);
 
-        // Publish event
+        // Publish event with correct signature
         eventPublisher.publishEvent(new HoldEvents.HoldReleased(
                 inventoryKey,
-                inventory.skuKey(),
-                inventory.locationKey(),
                 previousHoldCode,
                 reason,
                 releasedBy,
+                inventory.warehouseKey(),
                 Instant.now()
         ));
     }
@@ -349,7 +361,7 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
                 .transactionType(InventoryTransaction.TransactionType.ALLOCATE)
                 .quantity(quantity)
                 .sourceType(InventoryTransaction.TransactionSource.ORDER)
-                .sourceKey(orderKey.value())
+                .sourceKey(orderKey != null ? orderKey.value() : null)
                 .referenceKey(allocationKey.value())
                 .build();
         transactionRepository.save(transaction);
@@ -402,40 +414,51 @@ public class InventoryCoreServiceImpl implements InventoryCoreService {
         transactionRepository.save(transaction);
     }
 
-    private void publishAllocationComplete(AllocationResult result) {
+    private void publishAllocationComplete(AllocationResult result, WarehouseKey warehouseKey, StorerKey storerKey) {
+        // Convert AllocationResult.AllocationLine to AllocationEvents.InventoryAllocated.AllocationLine
+        List<AllocationEvents.InventoryAllocated.AllocationLine> eventLines = result.allocationLines().stream()
+                .map(line -> new AllocationEvents.InventoryAllocated.AllocationLine(
+                        line.inventoryKey(),
+                        line.lotKey(),
+                        line.locationKey(),
+                        line.lpnKey(),
+                        line.quantity()
+                ))
+                .toList();
+
         eventPublisher.publishEvent(new AllocationEvents.InventoryAllocated(
                 result.allocationKey(),
-                result.skuKey(),
                 result.orderKey(),
+                null, // orderLineNumber
+                result.skuKey(),
+                storerKey,
                 result.allocatedQuantity(),
-                result.allocationLines().stream()
-                        .map(line -> new AllocationEvents.AllocationDetail(
-                                line.inventoryKey(), line.locationKey(), line.quantity()))
-                        .toList(),
+                eventLines,
+                warehouseKey,
                 Instant.now()
         ));
     }
 
-    private void publishAllocationPartial(AllocationResult result) {
+    private void publishAllocationPartial(AllocationResult result, WarehouseKey warehouseKey) {
         eventPublisher.publishEvent(new AllocationEvents.AllocationShortage(
-                result.allocationKey(),
                 result.skuKey(),
                 result.orderKey(),
-                result.allocatedQuantity().add(result.shortageQuantity()),
+                result.requestedQuantity(),
                 result.allocatedQuantity(),
                 result.shortageQuantity(),
+                warehouseKey,
                 Instant.now()
         ));
     }
 
     private void publishAllocationShortage(AllocationCriteria criteria) {
         eventPublisher.publishEvent(new AllocationEvents.AllocationShortage(
-                null,
                 criteria.skuKey(),
                 criteria.orderKey(),
                 criteria.requiredQuantity(),
                 Quantity.zero(criteria.requiredQuantity().uom()),
                 criteria.requiredQuantity(),
+                criteria.warehouseKey(),
                 Instant.now()
         ));
     }

@@ -14,6 +14,8 @@ public interface WaveRepository {
 
     Optional<Wave> findByKey(String waveKey);
 
+    Optional<Wave> findByWaveKey(String waveKey);
+
     List<Wave> findByStatus(WaveStatus status);
 
     List<Wave> findByStorerKey(String storerKey);

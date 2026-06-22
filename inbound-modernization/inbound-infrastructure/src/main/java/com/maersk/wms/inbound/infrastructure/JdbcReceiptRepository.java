@@ -1,8 +1,11 @@
 package com.maersk.wms.inbound.infrastructure;
 
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptStatus;
-import com.maersk.wms.inbound.domain.repository.ReceiptRepository;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptStatus;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptType;
+import com.maersk.wms.inbound.domain.operations_service.repository.ReceiptRepository;
+import com.maersk.wms.inbound.shared.kernel.identifiers.ReceiptKey;
+import com.maersk.wms.inbound.shared.kernel.identifiers.StorerKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,7 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,24 +34,28 @@ public class JdbcReceiptRepository implements ReceiptRepository {
                    STATUS, EXPECTEDARRIVALDATE, ACTUALARRIVALDATE, RECEIPTDATE, CLOSEDDATE,
                    TOTALEXPECTEDQTY, TOTALRECEIVEDQTY, TOTALDAMAGEDQTY,
                    WAREHOUSEREFERENCE, NOTES,
-                   LOTTABLE01, LOTTABLE02, LOTTABLE03, LOTTABLE04, LOTTABLE05,
-                   LOTTABLE06, LOTTABLE07, LOTTABLE08, LOTTABLE09, LOTTABLE10,
                    ADDWHO, ADDDATE, EDITWHO, EDITDATE
             FROM RECEIPT
             """;
 
     @Override
-    public Optional<Receipt> findByKey(String receiptKey) {
+    public Optional<Receipt> findByKey(ReceiptKey receiptKey) {
         String sql = SELECT_BASE + " WHERE RECEIPTKEY = ?";
-        List<Receipt> results = jdbcTemplate.query(sql, new ReceiptRowMapper(), receiptKey);
+        List<Receipt> results = jdbcTemplate.query(sql, new ReceiptRowMapper(), receiptKey.value());
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     @Override
-    public Optional<Receipt> findByExternalKey(String externalReceiptKey, String storerKey) {
-        String sql = SELECT_BASE + " WHERE EXTERNRECEIPTKEY = ? AND STORERKEY = ?";
-        List<Receipt> results = jdbcTemplate.query(sql, new ReceiptRowMapper(), externalReceiptKey, storerKey);
+    public Optional<Receipt> findByExternalKey(String externalReceiptKey) {
+        String sql = SELECT_BASE + " WHERE EXTERNRECEIPTKEY = ?";
+        List<Receipt> results = jdbcTemplate.query(sql, new ReceiptRowMapper(), externalReceiptKey);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    @Override
+    public List<Receipt> findByStorerKey(StorerKey storerKey) {
+        String sql = SELECT_BASE + " WHERE STORERKEY = ? ORDER BY ADDDATE DESC";
+        return jdbcTemplate.query(sql, new ReceiptRowMapper(), storerKey.value());
     }
 
     @Override
@@ -58,9 +65,9 @@ public class JdbcReceiptRepository implements ReceiptRepository {
     }
 
     @Override
-    public List<Receipt> findByStorerKey(String storerKey) {
-        String sql = SELECT_BASE + " WHERE STORERKEY = ? ORDER BY ADDDATE DESC";
-        return jdbcTemplate.query(sql, new ReceiptRowMapper(), storerKey);
+    public List<Receipt> findByStorerAndStatus(StorerKey storerKey, ReceiptStatus status) {
+        String sql = SELECT_BASE + " WHERE STORERKEY = ? AND STATUS = ?";
+        return jdbcTemplate.query(sql, new ReceiptRowMapper(), storerKey.value(), status.getCode());
     }
 
     @Override
@@ -76,9 +83,21 @@ public class JdbcReceiptRepository implements ReceiptRepository {
     }
 
     @Override
-    public List<Receipt> findByDateRange(LocalDateTime fromDate, LocalDateTime toDate) {
-        String sql = SELECT_BASE + " WHERE RECEIPTDATE BETWEEN ? AND ? ORDER BY RECEIPTDATE DESC";
-        return jdbcTemplate.query(sql, new ReceiptRowMapper(), fromDate, toDate);
+    public List<Receipt> findByDateRange(LocalDate from, LocalDate to) {
+        String sql = SELECT_BASE + " WHERE CAST(RECEIPTDATE AS DATE) BETWEEN ? AND ? ORDER BY RECEIPTDATE DESC";
+        return jdbcTemplate.query(sql, new ReceiptRowMapper(), from, to);
+    }
+
+    @Override
+    public List<Receipt> findActiveByStorer(StorerKey storerKey) {
+        String sql = SELECT_BASE + " WHERE STORERKEY = ? AND STATUS IN ('0', '5', '9') ORDER BY RECEIPTDATE DESC";
+        return jdbcTemplate.query(sql, new ReceiptRowMapper(), storerKey.value());
+    }
+
+    @Override
+    public List<Receipt> findPendingPutaway() {
+        String sql = SELECT_BASE + " WHERE STATUS = '5' ORDER BY RECEIPTDATE ASC";
+        return jdbcTemplate.query(sql, new ReceiptRowMapper());
     }
 
     @Override
@@ -89,25 +108,41 @@ public class JdbcReceiptRepository implements ReceiptRepository {
     }
 
     @Override
-    public void delete(String receiptKey) {
+    public void delete(ReceiptKey receiptKey) {
         String sql = "DELETE FROM RECEIPT WHERE RECEIPTKEY = ?";
-        jdbcTemplate.update(sql, receiptKey);
+        jdbcTemplate.update(sql, receiptKey.value());
     }
 
     @Override
-    public String generateReceiptKey() {
-        String sql = "EXEC nspg_GetKey 'RECEIPT', 1";
-        return jdbcTemplate.queryForObject(sql, String.class);
+    public boolean exists(ReceiptKey receiptKey) {
+        String sql = "SELECT COUNT(1) FROM RECEIPT WHERE RECEIPTKEY = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, receiptKey.value());
+        return count != null && count > 0;
+    }
+
+    @Override
+    public long countByStatus(ReceiptStatus status) {
+        String sql = "SELECT COUNT(1) FROM RECEIPT WHERE STATUS = ?";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, status.getCode());
+        return count != null ? count : 0L;
+    }
+
+    @Override
+    public long countByStorerAndStatus(StorerKey storerKey, ReceiptStatus status) {
+        String sql = "SELECT COUNT(1) FROM RECEIPT WHERE STORERKEY = ? AND STATUS = ?";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, storerKey.value(), status.getCode());
+        return count != null ? count : 0L;
     }
 
     private static class ReceiptRowMapper implements RowMapper<Receipt> {
         @Override
         public Receipt mapRow(ResultSet rs, int rowNum) throws SQLException {
             return Receipt.builder()
-                    .receiptKey(rs.getString("RECEIPTKEY"))
-                    .receiptType(rs.getString("RECEIPTTYPE"))
+                    .receiptKey(new ReceiptKey(rs.getString("RECEIPTKEY")))
                     .externalReceiptKey(rs.getString("EXTERNRECEIPTKEY"))
-                    .storerKey(rs.getString("STORERKEY"))
+                    .storerKey(new StorerKey(rs.getString("STORERKEY")))
+                    .receiptType(ReceiptType.fromCode(rs.getString("RECEIPTTYPE")))
+                    .status(ReceiptStatus.fromCode(rs.getString("STATUS")))
                     .poKey(rs.getString("POKEY"))
                     .asnKey(rs.getString("ASNKEY"))
                     .carrierKey(rs.getString("CARRIERKEY"))
@@ -115,17 +150,7 @@ public class JdbcReceiptRepository implements ReceiptRepository {
                     .trailerNumber(rs.getString("TRAILERNUMBER"))
                     .sealNumber(rs.getString("SEALNUMBER"))
                     .door(rs.getString("DOOR"))
-                    .status(ReceiptStatus.fromCode(rs.getString("STATUS")))
-                    .totalExpectedQty(rs.getBigDecimal("TOTALEXPECTEDQTY"))
-                    .totalReceivedQty(rs.getBigDecimal("TOTALRECEIVEDQTY"))
-                    .totalDamagedQty(rs.getBigDecimal("TOTALDAMAGEDQTY"))
-                    .warehouseReference(rs.getString("WAREHOUSEREFERENCE"))
                     .notes(rs.getString("NOTES"))
-                    .lottable01(rs.getString("LOTTABLE01"))
-                    .lottable02(rs.getString("LOTTABLE02"))
-                    .lottable03(rs.getString("LOTTABLE03"))
-                    .lottable04(rs.getString("LOTTABLE04"))
-                    .lottable05(rs.getString("LOTTABLE05"))
                     .addWho(rs.getString("ADDWHO"))
                     .editWho(rs.getString("EDITWHO"))
                     .build();

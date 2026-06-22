@@ -4,7 +4,10 @@ package com.maersk.wms.picking.domain.cancellation_service.model;
  * Scope of pick cancellation.
  */
 public enum CancellationScope {
+    TASK("TASK", "Single Pick Task"),
     SINGLE_TASK("TASK", "Single Pick Task"),
+    DETAIL("DETAIL", "Single Pick Detail"),
+    LIST("LIST", "Entire Pick List"),
     PICK_LIST("LIST", "Entire Pick List"),
     ORDER("ORDER", "All Picks for Order"),
     WAVE("WAVE", "All Picks for Wave"),

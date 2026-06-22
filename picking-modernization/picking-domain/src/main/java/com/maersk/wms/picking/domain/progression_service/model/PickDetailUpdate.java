@@ -17,6 +17,7 @@ public class PickDetailUpdate {
 
     private String updateId;
     private PickTaskKey pickTaskKey;
+    private PickDetailKey pickDetailKey;
 
     // Update type
     private ProgressionEventType eventType;
@@ -45,6 +46,12 @@ public class PickDetailUpdate {
     // Reason (for cancellation/short/skip)
     private String reasonCode;
     private String reasonDescription;
+    private String reason;
+
+    // Generic before/after values for tracking changes
+    private String oldValue;
+    private String newValue;
+    private LocalDateTime timestamp;
 
     // Business methods
     public boolean isStatusChange() {

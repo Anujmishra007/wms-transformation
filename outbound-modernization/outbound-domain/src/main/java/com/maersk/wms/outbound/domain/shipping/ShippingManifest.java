@@ -101,4 +101,14 @@ public class ShippingManifest {
     public void setManifestType(ManifestType manifestType) {
         this.type = manifestType;
     }
+
+    /**
+     * Custom builder class to add manifestType() method.
+     */
+    public static class ShippingManifestBuilder {
+        public ShippingManifestBuilder manifestType(ManifestType manifestType) {
+            this.type = manifestType;
+            return this;
+        }
+    }
 }

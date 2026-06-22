@@ -26,8 +26,17 @@ public interface TaskRepository {
     List<Task> findByQueue(WorkQueueKey queueKey);
     List<Task> findByAssignedUser(UserKey userId);
     List<Task> findBySourceTypeAndKey(String sourceType, String sourceKey);
+    List<Task> findBySourceTypeAndSourceKey(String sourceType, String sourceKey);
+    List<Task> findBySourceType(String sourceType);
     List<Task> findByDateRange(LocalDateTime from, LocalDateTime to);
     List<Task> findOverdue(LocalDateTime threshold);
+
+    // Context queries
+    Optional<Task> findByTaskKey(TaskKey taskKey);
+    List<Task> findByLpn(LpnKey lpn);
+    List<Task> findByFromLocation(LocationKey location);
+    List<Task> findByToLocation(LocationKey location);
+    List<Task> findAll();
 
     // Assignment queries
     Optional<Task> findNextAvailable(ZoneKey zone, TaskType type);

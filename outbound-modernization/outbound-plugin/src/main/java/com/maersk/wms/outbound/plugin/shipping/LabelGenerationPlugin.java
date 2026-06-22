@@ -4,8 +4,10 @@ import com.maersk.wms.outbound.domain.shipping.ShippingLabel;
 import com.maersk.wms.outbound.plugin.OutboundPlugin;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
 import com.maersk.wms.outbound.plugin.PluginResult;
-import com.maersk.wms.outbound.service.shipping.LabelGenerationRequest;
-import com.maersk.wms.outbound.service.shipping.LabelValidationResult;
+import com.maersk.wms.outbound.domain.shipping.dto.AddressValidationResult;
+import com.maersk.wms.outbound.domain.shipping.dto.LabelGenerationRequest;
+import com.maersk.wms.outbound.domain.shipping.dto.LabelValidationResult;
+import com.maersk.wms.outbound.domain.shipping.dto.TrackingInfo;
 
 /**
  * Plugin interface for shipping label generation.

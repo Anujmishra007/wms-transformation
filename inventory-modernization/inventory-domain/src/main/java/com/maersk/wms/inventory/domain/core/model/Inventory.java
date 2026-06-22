@@ -81,8 +81,33 @@ public class Inventory {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public InventoryKey inventoryKey() { return inventoryKey; }
+    public SkuKey skuKey() { return skuKey; }
+    public LotKey lotKey() { return lotKey; }
+    public LocationKey locationKey() { return locationKey; }
+    public LpnKey lpnKey() { return lpnKey; }
+    public StorerKey storerKey() { return storerKey; }
+    public WarehouseKey warehouseKey() { return warehouseKey; }
+    public Quantity onHandQuantity() { return onHandQuantity; }
+    public Quantity allocatedQuantity() { return allocatedQuantity != null ? allocatedQuantity : Quantity.ZERO; }
+    public Quantity pickedQuantity() { return pickedQuantity != null ? pickedQuantity : Quantity.ZERO; }
+    public LottableAttributes lottables() { return lottables; }
+    public InventoryStatusCode status() { return status; }
+    public String holdCode() { return holdCode; }
+
+    // ═══════════════════════════════════════════════════════════════
     // QUANTITY CALCULATIONS
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Get available quantity = onHand - allocated - picked.
+     */
+    public Quantity availableQuantity() {
+        return getAvailableQuantity();
+    }
 
     /**
      * Get available quantity = onHand - allocated - picked.
@@ -124,6 +149,13 @@ public class Inventory {
      * Apply hold to inventory.
      */
     public void applyHold(String holdCode) {
+        applyHold(holdCode, null);
+    }
+
+    /**
+     * Apply hold to inventory with reason.
+     */
+    public void applyHold(String holdCode, String reason) {
         this.holdCode = holdCode;
         this.status = InventoryStatusCode.HOLD;
         this.updatedAt = Instant.now();
@@ -133,6 +165,13 @@ public class Inventory {
      * Release hold from inventory.
      */
     public void releaseHold() {
+        releaseHold(null);
+    }
+
+    /**
+     * Release hold from inventory with reason.
+     */
+    public void releaseHold(String reason) {
         this.holdCode = null;
         this.status = InventoryStatusCode.AVAILABLE;
         this.updatedAt = Instant.now();
@@ -142,6 +181,13 @@ public class Inventory {
      * Change status.
      */
     public void changeStatus(InventoryStatusCode newStatus) {
+        changeStatus(newStatus, null);
+    }
+
+    /**
+     * Change status with reason.
+     */
+    public void changeStatus(InventoryStatusCode newStatus, String reason) {
         this.status = newStatus;
         this.updatedAt = Instant.now();
     }
@@ -154,6 +200,13 @@ public class Inventory {
      * Allocate quantity.
      */
     public void allocate(Quantity quantity) {
+        allocate(quantity, null, null);
+    }
+
+    /**
+     * Allocate quantity with order and allocation key tracking.
+     */
+    public void allocate(Quantity quantity, OrderKey orderKey, AllocationKey allocationKey) {
         if (!isAvailableForAllocation()) {
             throw new IllegalStateException("Inventory is not available for allocation");
         }
@@ -169,6 +222,13 @@ public class Inventory {
      * Deallocate quantity.
      */
     public void deallocate(Quantity quantity) {
+        deallocate(quantity, null);
+    }
+
+    /**
+     * Deallocate quantity with reason.
+     */
+    public void deallocate(Quantity quantity, String reason) {
         if (allocatedQuantity == null || quantity.isGreaterThan(allocatedQuantity)) {
             throw new IllegalArgumentException("Cannot deallocate more than allocated quantity");
         }
@@ -223,6 +283,14 @@ public class Inventory {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * Update quantity with reason (for saga operations).
+     */
+    public void updateQuantity(Quantity newQuantity, String reason) {
+        this.onHandQuantity = newQuantity;
+        this.updatedAt = Instant.now();
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // ATTRIBUTE OPERATIONS
     // ═══════════════════════════════════════════════════════════════
@@ -236,10 +304,112 @@ public class Inventory {
     }
 
     /**
+     * Update lottable attributes with reason.
+     */
+    public void updateLottables(LottableAttributes newLottables, String reason) {
+        this.lottables = newLottables;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
      * Check if inventory is expired.
      */
     public boolean isExpired() {
         return lottables != null && lottables.isExpired();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADDITIONAL OPERATIONS
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Pick with allocation key tracking.
+     */
+    public void pick(Quantity quantity, AllocationKey allocationKey) {
+        if (allocatedQuantity == null || quantity.isGreaterThan(allocatedQuantity)) {
+            throw new IllegalArgumentException("Cannot pick more than allocated quantity");
+        }
+
+        this.allocatedQuantity = allocatedQuantity.subtract(quantity);
+        this.pickedQuantity = (pickedQuantity != null ? pickedQuantity : Quantity.ZERO).add(quantity);
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Confirm shipment.
+     */
+    public void confirmShipment(Quantity quantity) {
+        if (pickedQuantity == null || quantity.isGreaterThan(pickedQuantity)) {
+            throw new IllegalArgumentException("Cannot ship more than picked quantity");
+        }
+
+        this.pickedQuantity = pickedQuantity.subtract(quantity);
+        this.onHandQuantity = onHandQuantity.subtract(quantity);
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Change ownership/storer.
+     */
+    public void changeOwnership(StorerKey newStorerKey, String reason) {
+        this.storerKey = newStorerKey;
+        this.updatedAt = Instant.now();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATIC FACTORY METHODS
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Create inventory from receipt.
+     */
+    public static Inventory createFromReceipt(InventoryKey inventoryKey, SkuKey skuKey, LotKey lotKey,
+                                               LocationKey locationKey, LpnKey lpnKey, StorerKey storerKey,
+                                               WarehouseKey warehouseKey, Quantity quantity,
+                                               LottableAttributes lottables) {
+        return Inventory.builder()
+                .inventoryKey(inventoryKey)
+                .skuKey(skuKey)
+                .lotKey(lotKey)
+                .locationKey(locationKey)
+                .lpnKey(lpnKey)
+                .storerKey(storerKey)
+                .warehouseKey(warehouseKey)
+                .onHandQuantity(quantity)
+                .allocatedQuantity(Quantity.ZERO)
+                .pickedQuantity(Quantity.ZERO)
+                .lottables(lottables)
+                .status(InventoryStatusCode.AVAILABLE)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .trafficCop(0)
+                .build();
+    }
+
+    /**
+     * Create inventory from return.
+     */
+    public static Inventory createFromReturn(InventoryKey inventoryKey, SkuKey skuKey, LotKey lotKey,
+                                              LocationKey locationKey, LpnKey lpnKey, StorerKey storerKey,
+                                              WarehouseKey warehouseKey, Quantity quantity,
+                                              LottableAttributes lottables) {
+        return Inventory.builder()
+                .inventoryKey(inventoryKey)
+                .skuKey(skuKey)
+                .lotKey(lotKey)
+                .locationKey(locationKey)
+                .lpnKey(lpnKey)
+                .storerKey(storerKey)
+                .warehouseKey(warehouseKey)
+                .onHandQuantity(quantity)
+                .allocatedQuantity(Quantity.ZERO)
+                .pickedQuantity(Quantity.ZERO)
+                .lottables(lottables)
+                .status(InventoryStatusCode.QC_PENDING) // Returns typically need QC
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .trafficCop(0)
+                .build();
     }
 
     // ═══════════════════════════════════════════════════════════════

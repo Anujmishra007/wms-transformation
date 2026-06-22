@@ -3,6 +3,7 @@ package com.maersk.wms.outbound.service.shipping;
 import com.maersk.wms.outbound.domain.Order;
 import com.maersk.wms.outbound.domain.Wave;
 import com.maersk.wms.outbound.domain.shipping.*;
+import com.maersk.wms.outbound.domain.shipping.dto.MbolValidationResult;
 import com.maersk.wms.outbound.domain.repository.MbolRepository;
 import com.maersk.wms.outbound.domain.repository.OrderRepository;
 import com.maersk.wms.outbound.domain.repository.WaveRepository;

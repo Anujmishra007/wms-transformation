@@ -28,6 +28,7 @@ public class OsdDetail {
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for convenience
     private String skuDescription;
     private String packKey;
     private String uom;
@@ -40,9 +41,15 @@ public class OsdDetail {
     private BigDecimal overQty;
     private BigDecimal shortQty;
     private BigDecimal damagedQty;
+    private BigDecimal varianceQty;  // calculated variance
+    private BigDecimal damageQty;    // alias for damagedQty
+
+    // Lot info
+    private String lot;
 
     // Damage details
     private String damageCode;
+    private String damageType;       // damage type code
     private String damageDescription;
     private String damageLocation;  // Where on the item
 
@@ -58,6 +65,10 @@ public class OsdDetail {
     private String receiptDetailKey;
     private String poDetailKey;
     private String lpn;
+    private String lpnKey;
+
+    // Notes
+    private String notes;
 
     // Photos/evidence
     private List<String> photoUrls;

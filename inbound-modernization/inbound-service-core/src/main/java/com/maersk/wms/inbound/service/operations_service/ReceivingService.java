@@ -129,7 +129,7 @@ public class ReceivingService {
         // Create or update receipt detail
         ReceiptDetail detail = ReceiptDetail.builder()
             .skuKey(request.getSkuKey())
-            .receivedQty(new Quantity(request.getQuantity(), request.getUom()))
+            .receivedQty(request.getQuantity())
             .lpnKey(request.getLpnKey())
             .locationKey(request.getLocationKey())
             .lot(request.getLot())
@@ -153,7 +153,7 @@ public class ReceivingService {
         result.setReceiptKey(receiptKey.getValue());
         result.setReceiptDetailKey(detail.getReceiptDetailKey());
         result.setReceivedQty(request.getQuantity());
-        result.setLpnKey(request.getLpnKey() != null ? request.getLpnKey().getValue() : null);
+        result.setLpnKey(request.getLpnKey());
         result.setSuccess(true);
 
         return result;

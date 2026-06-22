@@ -1,11 +1,11 @@
 package com.maersk.wms.inbound.api;
 
 import com.maersk.wms.inbound.api.dto.*;
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptDetail;
-import com.maersk.wms.inbound.domain.ReceiptStatus;
-import com.maersk.wms.inbound.plugin.InboundPluginContext;
-import com.maersk.wms.inbound.service.ReceivingService;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptStatus;
+import com.maersk.wms.inbound.service.operations_service.ReceivingService;
+import com.maersk.wms.inbound.service.operations_service.dto.CreateReceiptRequest;
+import com.maersk.wms.inbound.shared.kernel.identifiers.ReceiptKey;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * REST controller for receipt operations.
@@ -36,143 +37,88 @@ public class ReceiptController {
             @RequestHeader("X-Country-Code") String countryCode,
             @RequestHeader("X-Warehouse-Code") String warehouseCode,
             @RequestHeader("X-User-Id") String userId,
-            @Valid @RequestBody CreateReceiptRequest request) {
+            @Valid @RequestBody com.maersk.wms.inbound.api.dto.CreateReceiptRequest request) {
 
         log.info("Creating receipt for client: {}", clientCode);
 
-        InboundPluginContext context = buildContext(clientCode, countryCode, warehouseCode, userId);
-        Receipt receipt = mapToReceipt(request);
-        Receipt created = receivingService.createReceipt(receipt, context);
+        CreateReceiptRequest serviceRequest = new CreateReceiptRequest();
+        serviceRequest.setStorerKey(request.getStorerKey());
+        serviceRequest.setPoKey(request.getPoKey());
+        serviceRequest.setAsnKey(request.getAsnKey());
+        serviceRequest.setCreatedBy(userId);
 
+        Receipt created = receivingService.createReceipt(serviceRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(created));
     }
 
     @GetMapping("/{receiptKey}")
     @Operation(summary = "Get receipt by key")
-    public ResponseEntity<ReceiptResponse> getReceipt(@PathVariable String receiptKey) {
-        Receipt receipt = receivingService.getReceipt(receiptKey);
-        return ResponseEntity.ok(mapToResponse(receipt));
-    }
-
-    @GetMapping
-    @Operation(summary = "Find receipts by status")
-    public ResponseEntity<List<ReceiptResponse>> findByStatus(
-            @RequestParam(required = false) String status) {
-
-        List<Receipt> receipts = status != null
-                ? receivingService.findByStatus(ReceiptStatus.fromCode(status))
-                : List.of();
-
-        List<ReceiptResponse> responses = receipts.stream()
-                .map(this::mapToResponse)
-                .toList();
-
-        return ResponseEntity.ok(responses);
-    }
-
-    @PostMapping("/{receiptKey}/receive")
-    @Operation(summary = "Receive inventory for a receipt line")
-    public ResponseEntity<ReceiptDetailResponse> receiveInventory(
+    public ResponseEntity<ReceiptResponse> getReceipt(
             @RequestHeader("X-Client-Code") String clientCode,
-            @RequestHeader("X-Country-Code") String countryCode,
-            @RequestHeader("X-Warehouse-Code") String warehouseCode,
-            @RequestHeader("X-User-Id") String userId,
-            @PathVariable String receiptKey,
-            @Valid @RequestBody ReceiveInventoryRequest request) {
-
-        log.info("Receiving inventory for receipt: {}", receiptKey);
-
-        InboundPluginContext context = buildContext(clientCode, countryCode, warehouseCode, userId);
-        ReceiptDetail detail = mapToDetail(request);
-        ReceiptDetail received = receivingService.receiveInventory(receiptKey, detail, context);
-
-        return ResponseEntity.ok(mapToDetailResponse(received));
-    }
-
-    @PostMapping("/{receiptKey}/close")
-    @Operation(summary = "Close a receipt")
-    public ResponseEntity<ReceiptResponse> closeReceipt(
-            @RequestHeader("X-Client-Code") String clientCode,
-            @RequestHeader("X-Country-Code") String countryCode,
-            @RequestHeader("X-Warehouse-Code") String warehouseCode,
             @RequestHeader("X-User-Id") String userId,
             @PathVariable String receiptKey) {
 
-        log.info("Closing receipt: {}", receiptKey);
-
-        InboundPluginContext context = buildContext(clientCode, countryCode, warehouseCode, userId);
-        Receipt closed = receivingService.closeReceipt(receiptKey, context);
-
-        return ResponseEntity.ok(mapToResponse(closed));
+        return receivingService.getReceipt(ReceiptKey.of(receiptKey))
+                .map(receipt -> ResponseEntity.ok(mapToResponse(receipt)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    private InboundPluginContext buildContext(String clientCode, String countryCode,
-                                               String warehouseCode, String userId) {
-        return InboundPluginContext.builder()
-                .clientCode(clientCode)
-                .countryCode(countryCode)
-                .warehouseCode(warehouseCode)
-                .userId(userId)
-                .build();
+    @GetMapping
+    @Operation(summary = "List receipts by status")
+    public ResponseEntity<List<ReceiptResponse>> listReceipts(
+            @RequestHeader("X-Client-Code") String clientCode,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String storerKey) {
+
+        List<Receipt> receipts;
+        if (status != null) {
+            receipts = receivingService.getByStatus(ReceiptStatus.valueOf(status));
+        } else if (storerKey != null) {
+            receipts = receivingService.getByStorer(storerKey);
+        } else {
+            // Default to open receipts
+            receipts = receivingService.getByStatus(ReceiptStatus.OPEN);
+        }
+
+        return ResponseEntity.ok(receipts.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList()));
     }
 
-    private Receipt mapToReceipt(CreateReceiptRequest request) {
-        return Receipt.builder()
-                .externalReceiptKey(request.getExternalReceiptKey())
-                .storerKey(request.getStorerKey())
-                .receiptType(request.getReceiptType())
-                .poKey(request.getPoKey())
-                .asnKey(request.getAsnKey())
-                .carrierKey(request.getCarrierKey())
-                .trailerNumber(request.getTrailerNumber())
-                .sealNumber(request.getSealNumber())
-                .door(request.getDoor())
-                .expectedArrivalDate(request.getExpectedArrivalDate())
-                .notes(request.getNotes())
-                .build();
+    @PostMapping("/{receiptKey}/start")
+    @Operation(summary = "Start receiving for a receipt")
+    public ResponseEntity<ReceiptResponse> startReceiving(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String receiptKey) {
+
+        receivingService.startReceiving(ReceiptKey.of(receiptKey), userId);
+        return receivingService.getReceipt(ReceiptKey.of(receiptKey))
+                .map(receipt -> ResponseEntity.ok(mapToResponse(receipt)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    private ReceiptDetail mapToDetail(ReceiveInventoryRequest request) {
-        return ReceiptDetail.builder()
-                .sku(request.getSku())
-                .lot(request.getLot())
-                .id(request.getLpn())
-                .receivedQty(request.getReceivedQty())
-                .damagedQty(request.getDamagedQty())
-                .location(request.getLocation())
-                .conditionCode(request.getConditionCode())
-                .expirationDate(request.getExpirationDate())
-                .build();
+    @PostMapping("/{receiptKey}/complete")
+    @Operation(summary = "Complete receiving for a receipt")
+    public ResponseEntity<ReceiptResponse> completeReceiving(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String receiptKey) {
+
+        receivingService.completeReceiving(ReceiptKey.of(receiptKey), userId);
+        return receivingService.getReceipt(ReceiptKey.of(receiptKey))
+                .map(receipt -> ResponseEntity.ok(mapToResponse(receipt)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     private ReceiptResponse mapToResponse(Receipt receipt) {
         return ReceiptResponse.builder()
-                .receiptKey(receipt.getReceiptKey())
-                .externalReceiptKey(receipt.getExternalReceiptKey())
-                .storerKey(receipt.getStorerKey())
-                .receiptType(receipt.getReceiptType())
-                .status(receipt.getStatus().getCode())
-                .statusDescription(receipt.getStatus().getDescription())
+                .receiptKey(receipt.getReceiptKey() != null ? receipt.getReceiptKey().getValue() : null)
+                .storerKey(receipt.getStorerKey() != null ? receipt.getStorerKey().getValue() : null)
                 .poKey(receipt.getPoKey())
                 .asnKey(receipt.getAsnKey())
-                .totalExpectedQty(receipt.getTotalExpectedQty())
-                .totalReceivedQty(receipt.getTotalReceivedQty())
-                .totalDamagedQty(receipt.getTotalDamagedQty())
-                .variance(receipt.getTotalVariance())
-                .build();
-    }
-
-    private ReceiptDetailResponse mapToDetailResponse(ReceiptDetail detail) {
-        return ReceiptDetailResponse.builder()
-                .receiptKey(detail.getReceiptKey())
-                .lineNumber(detail.getReceiptLineNumber())
-                .sku(detail.getSku())
-                .lot(detail.getLot())
-                .lpn(detail.getId())
-                .receivedQty(detail.getReceivedQty())
-                .damagedQty(detail.getDamagedQty())
-                .location(detail.getLocation())
-                .status(detail.getStatus().getCode())
+                .status(receipt.getStatus() != null ? receipt.getStatus().name() : null)
+                .statusDescription(receipt.getStatus() != null ? receipt.getStatus().getDescription() : null)
+                .totalReceivedQty(receipt.getReceivedQty())
+                .totalExpectedQty(receipt.getExpectedQty())
                 .build();
     }
 }

@@ -4,6 +4,7 @@ package com.maersk.wms.inbound.domain.document_service;
  * Status progression for ASN.
  */
 public enum AsnStatus {
+    DRAFT("D", "Draft", "ASN in draft"),
     OPEN("0", "Open", "ASN created/received"),
     SCHEDULED("1", "Scheduled", "Dock appointment scheduled"),
     IN_TRANSIT("2", "In Transit", "Shipment in transit"),

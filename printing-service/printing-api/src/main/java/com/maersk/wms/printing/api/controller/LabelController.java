@@ -29,6 +29,8 @@ public class LabelController {
     @PostMapping
     public ResponseEntity<LabelResponse> createLabel(@RequestBody CreateLabelRequest request) {
         LabelData labelData = new LabelData(
+                request.sourceType(),
+                request.sourceKey(),
                 request.fields(),
                 request.barcodes(),
                 Map.of()
@@ -47,6 +49,8 @@ public class LabelController {
     @PostMapping("/shipping")
     public ResponseEntity<LabelResponse> createShippingLabel(@RequestBody CreateShippingLabelRequest request) {
         LabelData labelData = new LabelData(
+                "SHIPPING",
+                request.sourceKey(),
                 request.fields(),
                 request.barcodes(),
                 Map.of()
@@ -65,6 +69,8 @@ public class LabelController {
     @PostMapping("/lpn")
     public ResponseEntity<LabelResponse> createLpnLabel(@RequestBody CreateLpnLabelRequest request) {
         LabelData labelData = new LabelData(
+                "LPN",
+                request.lpnNumber(),
                 request.fields(),
                 request.barcodes(),
                 Map.of()
@@ -142,6 +148,8 @@ public class LabelController {
     // DTOs
     public record CreateLabelRequest(
             String templateKey,
+            String sourceType,
+            String sourceKey,
             Map<String, String> fields,
             Map<String, String> barcodes,
             String warehouseKey,

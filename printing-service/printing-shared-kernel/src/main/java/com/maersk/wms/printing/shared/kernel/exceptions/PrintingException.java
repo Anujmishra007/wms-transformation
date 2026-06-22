@@ -7,6 +7,11 @@ public class PrintingException extends RuntimeException {
 
     private final String errorCode;
 
+    public PrintingException(String message) {
+        super(message);
+        this.errorCode = "PRINTING_ERROR";
+    }
+
     public PrintingException(String errorCode, String message) {
         super(message);
         this.errorCode = errorCode;

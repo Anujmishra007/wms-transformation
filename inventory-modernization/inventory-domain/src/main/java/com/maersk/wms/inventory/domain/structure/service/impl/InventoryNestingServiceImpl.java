@@ -61,15 +61,15 @@ public class InventoryNestingServiceImpl implements InventoryNestingService {
 
         InventoryHierarchy hierarchy = InventoryHierarchy.builder()
                 .nestingKey(new NestingKey(UUID.randomUUID().toString()))
-                .parentLpn(parentLpn)
+                .parentLpnKey(parentLpn)
                 .parentType(parentType)
-                .childLpn(childLpn)
+                .childLpnKey(childLpn)
                 .childType(childType)
                 .quantity(quantity)
                 .warehouseKey(warehouseKey)
                 .nestedBy(nestedBy)
                 .nestedAt(Instant.now())
-                .active(true)
+                .status(InventoryHierarchy.NestingStatus.ACTIVE)
                 .build();
 
         hierarchy = hierarchyRepository.save(hierarchy);
@@ -301,9 +301,11 @@ public class InventoryNestingServiceImpl implements InventoryNestingService {
     private int getContainerLevel(InventoryHierarchy.ContainerType type) {
         return switch (type) {
             case PALLET -> 1;
+            case TOTE -> 1;
             case CASE -> 2;
             case INNER_PACK -> 3;
             case EACH -> 4;
+            case MIXED -> 2;
         };
     }
 }

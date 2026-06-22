@@ -78,12 +78,12 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
                 .context(request.context())
                 .instructions(request.instructions())
                 .dueTime(request.dueTime())
-                .createdAt(Instant.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         Task savedTask = taskRepository.save(task);
 
-        recordHistory(taskKey, null, TaskStatus.CREATED, "TASK_CREATED", "SYSTEM");
+        recordHistory(taskKey, null, TaskStatus.CREATED, TaskHistory.HistoryAction.CREATED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskCreated(
                 taskKey,
@@ -131,7 +131,7 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
     @Override
     @Transactional(readOnly = true)
     public List<Task> getTasksByUser(UserKey userId) {
-        List<TaskAssignment> assignments = assignmentRepository.findByUserIdAndActive(userId);
+        List<TaskAssignment> assignments = assignmentRepository.findActiveByUser(userId);
         return assignments.stream()
                 .map(a -> taskRepository.findByTaskKey(a.getTaskKey()).orElse(null))
                 .filter(Objects::nonNull)
@@ -141,13 +141,13 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
     @Override
     @Transactional(readOnly = true)
     public List<Task> getTasksByGroup(TaskGroupKey groupKey) {
-        return taskRepository.findByGroupKey(groupKey);
+        return taskRepository.findByGroup(groupKey);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Task> getOverdueTasks() {
-        return taskRepository.findOverdueTasks(LocalDateTime.now());
+        return taskRepository.findOverdue(LocalDateTime.now());
     }
 
     // ==================== Task Release ====================
@@ -157,12 +157,12 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Releasing task {}", taskKey.value());
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.RELEASED);
+        validateCanRelease(task);
 
         task.release();
         taskRepository.save(task);
 
-        recordHistory(taskKey, TaskStatus.CREATED, TaskStatus.RELEASED, "TASK_RELEASED", "SYSTEM");
+        recordHistory(taskKey, TaskStatus.CREATED, TaskStatus.RELEASED, TaskHistory.HistoryAction.RELEASED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskReleased(
                 taskKey, Instant.now(), "SYSTEM"
@@ -184,7 +184,7 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
                 taskKey.value(), userId.value(), deviceId != null ? deviceId.value() : "none");
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.ASSIGNED);
+        validateCanAssign(task);
 
         AssignmentKey assignmentKey = new AssignmentKey(UUID.randomUUID().toString());
 
@@ -193,16 +193,16 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
                 .taskKey(taskKey)
                 .userId(userId)
                 .deviceId(deviceId)
-                .assignedAt(Instant.now())
-                .active(true)
+                .assignedAt(LocalDateTime.now())
+                .status(TaskAssignment.AssignmentStatus.PENDING)
                 .build();
 
         assignmentRepository.save(assignment);
 
-        task.assign(userId, deviceId, assignmentKey);
+        task.assign(userId, deviceId);
         taskRepository.save(task);
 
-        recordHistory(taskKey, task.getStatus(), TaskStatus.ASSIGNED, "TASK_ASSIGNED", userId.value());
+        recordHistory(taskKey, task.getStatus(), TaskStatus.ASSIGNED, TaskHistory.HistoryAction.ASSIGNED, userId);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskAssigned(
                 taskKey, assignmentKey, userId, deviceId, Instant.now(), "SYSTEM"
@@ -216,24 +216,22 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Unassigning task {} - reason: {}", taskKey.value(), reason);
 
         Task task = getTask(taskKey);
-        AssignmentKey assignmentKey = task.getAssignmentKey();
-        UserKey previousUserId = task.getAssignedUserId();
+        UserKey previousUserId = task.getAssignedUser();
 
-        if (assignmentKey != null) {
-            assignmentRepository.findByAssignmentKey(assignmentKey)
-                    .ifPresent(assignment -> {
-                        assignment.deactivate();
-                        assignmentRepository.save(assignment);
-                    });
-        }
+        // Find and cancel current assignment
+        assignmentRepository.findCurrentAssignment(taskKey)
+                .ifPresent(assignment -> {
+                    assignment.cancel(reason);
+                    assignmentRepository.save(assignment);
+                });
 
         task.unassign();
         taskRepository.save(task);
 
-        recordHistory(taskKey, TaskStatus.ASSIGNED, TaskStatus.RELEASED, "TASK_UNASSIGNED", "SYSTEM");
+        recordHistory(taskKey, TaskStatus.ASSIGNED, TaskStatus.RELEASED, TaskHistory.HistoryAction.UNASSIGNED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskUnassigned(
-                taskKey, assignmentKey, previousUserId, reason, Instant.now(), "SYSTEM"
+                taskKey, null, previousUserId, reason, Instant.now(), "SYSTEM"
         ));
 
         log.info("Unassigned task {}", taskKey.value());
@@ -244,8 +242,8 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Reassigning task {} to user {}", taskKey.value(), newUserId.value());
 
         Task task = getTask(taskKey);
-        UserKey fromUserId = task.getAssignedUserId();
-        DeviceKey deviceId = task.getDeviceId();
+        UserKey fromUserId = task.getAssignedUser();
+        DeviceKey deviceId = task.getAssignedDevice();
 
         unassignTask(taskKey, "Reassignment");
         assignTask(taskKey, newUserId, deviceId);
@@ -261,10 +259,7 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
     @Override
     @Transactional(readOnly = true)
     public Optional<Task> getNextTaskForUser(UserKey userId, ZoneKey zone) {
-        return workQueueRepository.findActiveQueuesByZone(zone).stream()
-                .flatMap(queue -> taskRepository.findByQueueKeyAndStatus(queue.getQueueKey(), TaskStatus.RELEASED).stream())
-                .sorted(Comparator.comparing(t -> t.getPriority().score(), Comparator.reverseOrder()))
-                .findFirst();
+        return taskRepository.findNextAvailableForUser(userId, zone);
     }
 
     // ==================== Task Execution ====================
@@ -274,16 +269,23 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Starting task {}", taskKey.value());
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.IN_PROGRESS);
+        validateCanStart(task);
 
         task.start();
         taskRepository.save(task);
 
-        recordHistory(taskKey, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS, "TASK_STARTED",
-                task.getAssignedUserId() != null ? task.getAssignedUserId().value() : "SYSTEM");
+        // Update assignment
+        assignmentRepository.findCurrentAssignment(taskKey)
+                .ifPresent(assignment -> {
+                    assignment.start();
+                    assignmentRepository.save(assignment);
+                });
+
+        UserKey userId = task.getAssignedUser();
+        recordHistory(taskKey, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS, TaskHistory.HistoryAction.STARTED, userId);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskStarted(
-                taskKey, task.getAssignedUserId(), task.getDeviceId(),
+                taskKey, task.getAssignedUser(), task.getAssignedDevice(),
                 task.getFromLocation(), Instant.now()
         ));
 
@@ -295,12 +297,12 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Suspending task {} - reason: {}", taskKey.value(), reason);
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.SUSPENDED);
+        validateCanSuspend(task);
 
         task.suspend(reason);
         taskRepository.save(task);
 
-        recordHistory(taskKey, TaskStatus.IN_PROGRESS, TaskStatus.SUSPENDED, "TASK_SUSPENDED", "SYSTEM");
+        recordHistory(taskKey, TaskStatus.IN_PROGRESS, TaskStatus.SUSPENDED, TaskHistory.HistoryAction.SUSPENDED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskSuspended(
                 taskKey, reason, Instant.now(), "SYSTEM"
@@ -314,12 +316,15 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Resuming task {}", taskKey.value());
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.IN_PROGRESS);
+        // Check if task can be resumed
+        if (task.getStatus() != TaskStatus.SUSPENDED) {
+            throw new InvalidTaskStateException("Task must be suspended to resume");
+        }
 
         task.resume();
         taskRepository.save(task);
 
-        recordHistory(taskKey, TaskStatus.SUSPENDED, TaskStatus.IN_PROGRESS, "TASK_RESUMED", "SYSTEM");
+        recordHistory(taskKey, TaskStatus.SUSPENDED, TaskStatus.IN_PROGRESS, TaskHistory.HistoryAction.RESUMED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskResumed(
                 taskKey, Instant.now(), "SYSTEM"
@@ -333,24 +338,23 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Completing task {} with quantity {}", taskKey.value(), actualQuantity);
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.COMPLETED);
+        validateCanComplete(task);
 
         task.complete(actualQuantity);
         taskRepository.save(task);
 
-        if (task.getAssignmentKey() != null) {
-            assignmentRepository.findByAssignmentKey(task.getAssignmentKey())
-                    .ifPresent(assignment -> {
-                        assignment.complete();
-                        assignmentRepository.save(assignment);
-                    });
-        }
+        // Complete assignment
+        assignmentRepository.findCurrentAssignment(taskKey)
+                .ifPresent(assignment -> {
+                    assignment.complete();
+                    assignmentRepository.save(assignment);
+                });
 
-        recordHistory(taskKey, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, "TASK_COMPLETED",
-                task.getAssignedUserId() != null ? task.getAssignedUserId().value() : "SYSTEM");
+        UserKey userId = task.getAssignedUser();
+        recordHistory(taskKey, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskHistory.HistoryAction.COMPLETED, userId);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskCompleted(
-                taskKey, task.getAssignedUserId(), task.getToLocation(),
+                taskKey, task.getAssignedUser(), task.getToLocation(),
                 Map.of("actualQuantity", actualQuantity), Instant.now()
         ));
 
@@ -362,20 +366,19 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Cancelling task {} - reason: {}", taskKey.value(), reason);
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.CANCELLED);
+        validateCanCancel(task);
 
         task.cancel(reason);
         taskRepository.save(task);
 
-        if (task.getAssignmentKey() != null) {
-            assignmentRepository.findByAssignmentKey(task.getAssignmentKey())
-                    .ifPresent(assignment -> {
-                        assignment.deactivate();
-                        assignmentRepository.save(assignment);
-                    });
-        }
+        // Cancel assignment if exists
+        assignmentRepository.findCurrentAssignment(taskKey)
+                .ifPresent(assignment -> {
+                    assignment.cancel(reason);
+                    assignmentRepository.save(assignment);
+                });
 
-        recordHistory(taskKey, task.getStatus(), TaskStatus.CANCELLED, "TASK_CANCELLED", "SYSTEM");
+        recordHistory(taskKey, task.getStatus(), TaskStatus.CANCELLED, TaskHistory.HistoryAction.CANCELLED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskCancelled(
                 taskKey, reason, Instant.now(), "SYSTEM"
@@ -389,12 +392,15 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
         log.info("Closing task {}", taskKey.value());
 
         Task task = getTask(taskKey);
-        validateStateTransition(task, TaskStatus.CLOSED);
+        // Check if task can be closed
+        if (task.getStatus() != TaskStatus.COMPLETED && task.getStatus() != TaskStatus.CANCELLED) {
+            throw new InvalidTaskStateException("Task must be completed or cancelled to close");
+        }
 
         task.close();
         taskRepository.save(task);
 
-        recordHistory(taskKey, task.getStatus(), TaskStatus.CLOSED, "TASK_CLOSED", "SYSTEM");
+        recordHistory(taskKey, task.getStatus(), TaskStatus.CLOSED, TaskHistory.HistoryAction.CLOSED, null);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskClosed(
                 taskKey, Instant.now(), "SYSTEM"
@@ -420,13 +426,13 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
     @Override
     @Transactional(readOnly = true)
     public List<TaskHistory> getTaskHistory(TaskKey taskKey) {
-        return historyRepository.findByTaskKey(taskKey);
+        return historyRepository.findByTask(taskKey);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TaskHistory> getTaskHistoryByUser(UserKey userId, LocalDateTime from, LocalDateTime to) {
-        return historyRepository.findByUserIdAndDateRange(userId, from, to);
+        return historyRepository.findByUser(userId, from, to);
     }
 
     // ==================== Metrics ====================
@@ -445,35 +451,74 @@ public class TaskLifecycleServiceImpl implements TaskLifecycleService {
 
     // ==================== Private Helpers ====================
 
-    private void validateStateTransition(Task task, TaskStatus targetStatus) {
-        if (!task.canTransitionTo(targetStatus)) {
+    private void validateCanRelease(Task task) {
+        if (task.getStatus() != TaskStatus.CREATED) {
             throw new InvalidTaskStateException(
-                    "Cannot transition task " + task.getTaskKey().value() +
-                    " from " + task.getStatus() + " to " + targetStatus
+                    "Cannot release task " + task.getTaskKey().value() +
+                    " from status " + task.getStatus()
+            );
+        }
+    }
+
+    private void validateCanAssign(Task task) {
+        if (!task.canAssign()) {
+            throw new InvalidTaskStateException(
+                    "Cannot assign task " + task.getTaskKey().value() +
+                    " in status " + task.getStatus()
+            );
+        }
+    }
+
+    private void validateCanStart(Task task) {
+        if (!task.canStart()) {
+            throw new InvalidTaskStateException(
+                    "Cannot start task " + task.getTaskKey().value() +
+                    " in status " + task.getStatus()
+            );
+        }
+    }
+
+    private void validateCanSuspend(Task task) {
+        if (!task.canSuspend()) {
+            throw new InvalidTaskStateException(
+                    "Cannot suspend task " + task.getTaskKey().value() +
+                    " in status " + task.getStatus()
+            );
+        }
+    }
+
+    private void validateCanComplete(Task task) {
+        if (!task.canComplete()) {
+            throw new InvalidTaskStateException(
+                    "Cannot complete task " + task.getTaskKey().value() +
+                    " in status " + task.getStatus()
+            );
+        }
+    }
+
+    private void validateCanCancel(Task task) {
+        if (!task.canCancel()) {
+            throw new InvalidTaskStateException(
+                    "Cannot cancel task " + task.getTaskKey().value() +
+                    " in status " + task.getStatus()
             );
         }
     }
 
     private void recordHistory(TaskKey taskKey, TaskStatus previousStatus, TaskStatus newStatus,
-                               String action, String performedBy) {
-        HistoryKey historyKey = new HistoryKey(UUID.randomUUID().toString());
-
-        TaskHistory history = TaskHistory.builder()
-                .historyKey(historyKey)
-                .taskKey(taskKey)
-                .previousStatus(previousStatus)
-                .newStatus(newStatus)
-                .action(action)
-                .performedBy(performedBy)
-                .performedAt(Instant.now())
-                .build();
+                               TaskHistory.HistoryAction action, UserKey performedBy) {
+        TaskHistory history = TaskHistory.recordAction(
+                taskKey, action, previousStatus, newStatus, performedBy, null
+        );
 
         historyRepository.save(history);
 
         eventPublisher.publishEvent(new LifecycleEvents.TaskHistoryRecorded(
-                taskKey, historyKey,
+                taskKey, history.getHistoryKey(),
                 previousStatus != null ? previousStatus.name() : null,
-                newStatus.name(), action, performedBy, Instant.now()
+                newStatus.name(), action.name(),
+                performedBy != null ? performedBy.value() : "SYSTEM",
+                Instant.now()
         ));
     }
 }

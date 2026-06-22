@@ -7,11 +7,19 @@ import java.time.Instant;
  */
 public interface PrintingDomainEvent {
 
-    String aggregateId();
-
-    String eventType();
-
     Instant occurredAt();
+
+    default String aggregateId() {
+        return "unknown";
+    }
+
+    default String eventType() {
+        return getClass().getSimpleName();
+    }
+
+    default String getEventType() {
+        return eventType();
+    }
 
     default String boundedContext() {
         return "PRINTING";

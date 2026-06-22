@@ -1,7 +1,7 @@
 package com.maersk.wms.inbound.plugin;
 
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptDetail;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
 
 /**
  * Plugin interface for receiving operations.

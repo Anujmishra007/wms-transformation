@@ -15,6 +15,45 @@ public final class AllocationEvents {
 
     private AllocationEvents() {}
 
+    // ═══════════════════════════════════════════════════════════════
+    // SIMPLIFIED ALLOCATION EVENTS (for service compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public record AllocationDetail(
+            AllocationKey allocationKey,
+            InventoryKey inventoryKey,
+            LocationKey locationKey,
+            LotKey lotKey,
+            LpnKey lpnKey,
+            Quantity quantity,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.allocation.detail";
+        }
+    }
+
+    public record AllocationShortage(
+            SkuKey skuKey,
+            OrderKey orderKey,
+            Quantity requestedQuantity,
+            Quantity allocatedQuantity,
+            Quantity shortageQuantity,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.allocation.shortage";
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DETAILED ALLOCATION EVENTS
+    // ═══════════════════════════════════════════════════════════════
+
     public record InventoryAllocated(
             AllocationKey allocationKey,
             OrderKey orderKey,

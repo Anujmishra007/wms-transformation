@@ -1,13 +1,14 @@
 package com.maersk.wms.inbound.plugin.returns;
 
-import com.maersk.wms.inbound.domain.returns.ReturnDetail;
-import com.maersk.wms.inbound.domain.returns.TradeReturn;
+import com.maersk.wms.inbound.domain.operations_service.ReturnDetail;
+import com.maersk.wms.inbound.domain.operations_service.ReturnDisposition;
+import com.maersk.wms.inbound.domain.operations_service.TradeReturn;
+import com.maersk.wms.inbound.domain.operations_service.dto.AssignDispositionRequest;
+import com.maersk.wms.inbound.domain.operations_service.dto.DispositionResult;
+import com.maersk.wms.inbound.domain.operations_service.dto.InspectReturnLineRequest;
 import com.maersk.wms.inbound.plugin.InboundPlugin;
 import com.maersk.wms.inbound.plugin.InboundPluginContext;
 import com.maersk.wms.inbound.plugin.PluginResult;
-import com.maersk.wms.inbound.service.returns.AssignDispositionRequest;
-import com.maersk.wms.inbound.service.returns.DispositionResult;
-import com.maersk.wms.inbound.service.returns.InspectReturnLineRequest;
 
 /**
  * Plugin interface for return inspection operations.
@@ -111,9 +112,9 @@ public interface ReturnInspectionPlugin extends InboundPlugin {
      * Get allowed dispositions for a grade.
      * Some grades may only allow certain dispositions.
      */
-    default java.util.List<com.maersk.wms.inbound.domain.returns.ReturnDisposition> getAllowedDispositions(
+    default java.util.List<ReturnDisposition> getAllowedDispositions(
             String inspectionGrade, InboundPluginContext context) {
-        return java.util.Arrays.asList(com.maersk.wms.inbound.domain.returns.ReturnDisposition.values());
+        return java.util.Arrays.asList(ReturnDisposition.values());
     }
 
     /**
@@ -121,7 +122,7 @@ public interface ReturnInspectionPlugin extends InboundPlugin {
      * High-value items or certain dispositions may need manager approval.
      */
     default boolean requiresApproval(TradeReturn tradeReturn, ReturnDetail detail,
-                                      com.maersk.wms.inbound.domain.returns.ReturnDisposition disposition,
+                                      ReturnDisposition disposition,
                                       InboundPluginContext context) {
         return false;
     }

@@ -32,7 +32,9 @@ public class PrinterController {
                 PrinterConnection.ConnectionType.valueOf(request.connectionType()),
                 request.ipAddress(),
                 request.port(),
-                request.macAddress()
+                "RAW",  // Default protocol
+                5000,   // Default timeout
+                null    // No credentials
         );
 
         Printer printer = printerService.registerPrinter(

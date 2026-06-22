@@ -14,6 +14,8 @@ public interface OrderRepository {
 
     Optional<Order> findByKey(String orderKey);
 
+    Optional<Order> findByOrderKey(String orderKey);
+
     Optional<Order> findByExternalKey(String externalOrderKey, String storerKey);
 
     List<Order> findByStatus(OrderStatus status);

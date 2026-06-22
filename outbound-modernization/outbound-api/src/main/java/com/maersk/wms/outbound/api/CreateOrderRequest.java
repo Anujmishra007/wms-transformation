@@ -3,7 +3,6 @@ package com.maersk.wms.outbound.api;
 import com.maersk.wms.outbound.domain.Order;
 import com.maersk.wms.outbound.domain.OrderDetail;
 import com.maersk.wms.outbound.domain.OrderPriority;
-import com.maersk.wms.outbound.domain.OrderType;
 import lombok.Data;
 
 import jakarta.validation.Valid;
@@ -51,12 +50,10 @@ public class CreateOrderRequest {
 
     public Order toEntity() {
         Order order = new Order();
-        order.setOrderNumber(orderNumber);
-        order.setExternalOrderNumber(externalOrderNumber);
-        order.setOrderType(orderType != null ? OrderType.valueOf(orderType) : OrderType.STANDARD);
+        order.setExternalOrderKey(orderNumber);
+        order.setOrderType(orderType != null ? orderType : "STD");
         order.setPriority(priority != null ? OrderPriority.valueOf(priority) : OrderPriority.NORMAL);
-        order.setCustomerCode(customerCode);
-        order.setShipToCode(shipToCode);
+        order.setConsigneeKey(customerCode);
         order.setShipToName(shipToName);
         order.setShipToAddress1(shipToAddress1);
         order.setShipToAddress2(shipToAddress2);
@@ -65,8 +62,7 @@ public class CreateOrderRequest {
         order.setShipToZip(shipToZip);
         order.setShipToCountry(shipToCountry);
         order.setCarrierCode(carrierCode);
-        order.setShipMethod(shipMethod);
-        order.setRequiredDate(requiredDate);
+        order.setRequiredDeliveryDate(requiredDate);
 
         List<OrderDetail> details = lines.stream()
                 .map(OrderLineRequest::toEntity)
@@ -91,15 +87,15 @@ public class CreateOrderRequest {
 
         public OrderDetail toEntity() {
             OrderDetail detail = new OrderDetail();
-            detail.setLineNumber(lineNumber);
+            detail.setOrderLineNumber(lineNumber);
             detail.setSku(sku);
             detail.setSkuDescription(skuDescription);
-            detail.setOrderedQty(quantity);
+            detail.setQtyOrdered(quantity);
             detail.setUom(uom != null ? uom : "EA");
-            detail.setRequestedLot(lot);
-            detail.setAllocatedQty(BigDecimal.ZERO);
-            detail.setPickedQty(BigDecimal.ZERO);
-            detail.setShippedQty(BigDecimal.ZERO);
+            detail.setPreferredLot(lot);
+            detail.setQtyAllocated(BigDecimal.ZERO);
+            detail.setQtyPicked(BigDecimal.ZERO);
+            detail.setQtyShipped(BigDecimal.ZERO);
             return detail;
         }
     }

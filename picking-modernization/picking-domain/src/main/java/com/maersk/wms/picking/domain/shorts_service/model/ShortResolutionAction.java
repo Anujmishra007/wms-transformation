@@ -7,10 +7,13 @@ public enum ShortResolutionAction {
     REALLOCATE("REALLOC", "Reallocate from different location"),
     BACKORDER("BACKORD", "Backorder the quantity"),
     SUBSTITUTE("SUBST", "Substitute with different SKU"),
+    CANCEL("CANCEL", "Cancel the order line"),
     CANCEL_LINE("CANCEL", "Cancel the order line"),
     ADJUST_INVENTORY("ADJINV", "Adjust inventory"),
     REPLENISHMENT("REPLEN", "Trigger replenishment"),
+    REPLENISH("REPLEN", "Trigger replenishment"),
     MANUAL_PICK("MANUAL", "Manual pick required"),
+    MANUAL_FILL("MANUAL", "Manual fill required"),
     NO_ACTION("NONE", "No action required");
 
     private final String code;

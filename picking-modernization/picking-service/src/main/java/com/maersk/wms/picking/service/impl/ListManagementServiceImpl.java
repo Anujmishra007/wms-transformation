@@ -40,7 +40,7 @@ public class ListManagementServiceImpl implements ListManagementService {
         log.info("Creating {} pick list for zone {}", type, zone);
 
         PickList list = PickList.builder()
-                .pickListKey(new PickListKey(UUID.randomUUID().toString()))
+                .pickListKey(PickListKey.generate())
                 .type(type)
                 .zone(zone)
                 .description(description)

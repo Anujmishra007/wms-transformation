@@ -82,6 +82,13 @@ public record LottableAttributes(
     }
 
     /**
+     * Alias for getExpiryDate() for record-style access.
+     */
+    public LocalDate expiryDate() {
+        return getExpiryDate();
+    }
+
+    /**
      * Parse manufacturing date from lottable03 (common usage pattern).
      */
     public LocalDate getManufacturingDate() {

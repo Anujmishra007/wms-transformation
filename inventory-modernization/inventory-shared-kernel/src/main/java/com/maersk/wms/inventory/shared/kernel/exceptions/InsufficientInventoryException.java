@@ -1,5 +1,6 @@
 package com.maersk.wms.inventory.shared.kernel.exceptions;
 
+import com.maersk.wms.inventory.shared.kernel.identifiers.InventoryKey;
 import com.maersk.wms.inventory.shared.kernel.valueobjects.Quantity;
 
 /**
@@ -23,6 +24,15 @@ public class InsufficientInventoryException extends InventoryException {
         super("INV_INSUFFICIENT", String.format(
                 "Insufficient inventory for SKU %s: requested %s %s, available %s %s",
                 sku, requested.value(), requested.uom(),
+                available.value(), available.uom()));
+        this.requested = requested;
+        this.available = available;
+    }
+
+    public InsufficientInventoryException(InventoryKey inventoryKey, Quantity requested, Quantity available) {
+        super("INV_INSUFFICIENT", String.format(
+                "Insufficient inventory for key %s: requested %s %s, available %s %s",
+                inventoryKey.value(), requested.value(), requested.uom(),
                 available.value(), available.uom()));
         this.requested = requested;
         this.available = available;

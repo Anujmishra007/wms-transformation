@@ -22,19 +22,28 @@ public class PurchaseOrderDetail {
 
     private String poDetailKey;
     private PurchaseOrder purchaseOrder;
-    private String lineNumber;
+    private Integer lineNumber;
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for builder
     private String skuDescription;
     private String packKey;
     private String uom;
 
     // Quantities
     private BigDecimal orderedQty;
+    private BigDecimal expectedQty;  // Alias for orderedQty
     private BigDecimal receivedQty;
     private BigDecimal openQty;
     private BigDecimal cancelledQty;
+
+    // Lot tracking
+    private String lot;
+    private java.time.LocalDate expiryDate;
+
+    // Pricing
+    private BigDecimal unitCost;
 
     // Status
     private PoDetailStatus status;

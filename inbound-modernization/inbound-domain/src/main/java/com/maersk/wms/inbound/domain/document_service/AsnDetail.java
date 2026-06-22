@@ -23,10 +23,11 @@ public class AsnDetail {
 
     private String asnDetailKey;
     private Asn asn;
-    private String lineNumber;
+    private Integer lineNumber;
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for builder
     private String skuDescription;
     private String packKey;
     private String uom;
@@ -43,14 +44,16 @@ public class AsnDetail {
 
     // Lot tracking
     private LotAttributes lotAttributes;
-
-    // Weight/dimensions
-    private BigDecimal weight;
-    private String weightUom;
+    private String lot;  // String representation for builder
+    private java.time.LocalDate expiryDate;
 
     // PO reference
     private String poKey;
     private String poDetailKey;
+
+    // Weight/dimensions
+    private BigDecimal weight;
+    private String weightUom;
 
     // Audit
     private String addWho;

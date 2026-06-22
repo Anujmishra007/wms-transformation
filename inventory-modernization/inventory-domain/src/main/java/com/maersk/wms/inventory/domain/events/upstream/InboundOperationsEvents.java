@@ -5,6 +5,8 @@ import com.maersk.wms.inventory.shared.kernel.valueobjects.*;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Upstream events consumed FROM inbound-operations-service.
@@ -13,6 +15,85 @@ import java.time.LocalDateTime;
 public final class InboundOperationsEvents {
 
     private InboundOperationsEvents() {}
+
+    // ═══════════════════════════════════════════════════════════════
+    // SHARED HELPER RECORDS
+    // ═══════════════════════════════════════════════════════════════
+
+    public record ReceiptLineDetail(
+            String lineNumber,
+            SkuKey skuKey,
+            LotKey lotKey,
+            LocationKey locationKey,
+            LpnKey lpnKey,
+            Quantity receivedQuantity,
+            LottableAttributes lottables
+    ) {}
+
+    public record ReturnLineDetail(
+            String lineNumber,
+            SkuKey skuKey,
+            LotKey lotKey,
+            LocationKey locationKey,
+            LpnKey lpnKey,
+            Quantity returnedQuantity,
+            LottableAttributes lottables
+    ) {}
+
+    // ═══════════════════════════════════════════════════════════════
+    // BATCH RECEIPT EVENTS (used by Kafka consumers)
+    // ═══════════════════════════════════════════════════════════════
+
+    public record ReceiptCompleted(
+            String eventId,
+            ReceiptKey receiptKey,
+            StorerKey storerKey,
+            WarehouseKey warehouseKey,
+            List<ReceiptLineDetail> receiptLines,
+            UserKey receivedBy,
+            Instant occurredAt
+    ) {}
+
+    public record ReceiptLineReceived(
+            String eventId,
+            ReceiptKey receiptKey,
+            String lineNumber,
+            SkuKey skuKey,
+            LotKey lotKey,
+            LocationKey locationKey,
+            LpnKey lpnKey,
+            StorerKey storerKey,
+            WarehouseKey warehouseKey,
+            Quantity receivedQuantity,
+            LottableAttributes lottables,
+            UserKey receivedBy,
+            Instant occurredAt
+    ) {}
+
+    public record PutawayCompleted(
+            String eventId,
+            InventoryKey inventoryKey,
+            ReceiptKey receiptKey,
+            LpnKey lpnKey,
+            SkuKey skuKey,
+            LocationKey fromLocation,
+            LocationKey toLocation,
+            Quantity quantity,
+            UserKey completedBy,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) {}
+
+    public record ReturnReceived(
+            String eventId,
+            String returnKey,
+            OrderKey originalOrderKey,
+            StorerKey storerKey,
+            WarehouseKey warehouseKey,
+            List<ReturnLineDetail> returnLines,
+            UserKey receivedBy,
+            Instant occurredAt
+    ) {}
 
     // ═══════════════════════════════════════════════════════════════
     // RECEIVING EVENTS - Trigger inventory creation

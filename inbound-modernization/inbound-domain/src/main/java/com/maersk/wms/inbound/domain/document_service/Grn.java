@@ -45,6 +45,7 @@ public class Grn {
     private String vendorKey;
     private String vendorName;
     private String vendorInvoice;
+    private String deliveryNote;
 
     // Dates
     private LocalDateTime receiptDate;
@@ -64,7 +65,8 @@ public class Grn {
     private boolean inspectionComplete;
     private String inspectionResult;
 
-    // Approval
+    // Generated/Approval
+    private String generatedBy;
     private String approvedBy;
     private String approvalNotes;
 
@@ -129,5 +131,101 @@ public class Grn {
         details.add(detail);
         detail.setGrn(this);
         totalLines = details.size();
+    }
+
+    /**
+     * Mark the GRN as printed.
+     */
+    public void markPrinted() {
+        // Mark as printed - could update status or set a flag
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Approve the GRN.
+     */
+    public void approve(String approvedBy) {
+        if (status != GrnStatus.PENDING_APPROVAL && status != GrnStatus.DRAFT) {
+            throw new IllegalStateException("GRN cannot be approved from status: " + status);
+        }
+        this.status = GrnStatus.APPROVED;
+        this.approvedBy = approvedBy;
+        this.approvalDate = LocalDateTime.now();
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Post GRN to ERP system.
+     */
+    public void postToErp(String erpReference) {
+        if (status != GrnStatus.APPROVED) {
+            throw new IllegalStateException("GRN must be approved before posting to ERP");
+        }
+        this.erpReference = erpReference;
+        this.postedToErp = true;
+        this.erpPostingDate = LocalDateTime.now();
+        this.erpPostingStatus = "POSTED";
+        this.status = GrnStatus.POSTED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Mark ERP posting as failed.
+     */
+    public void markErpPostingFailed(String errorMessage) {
+        this.postedToErp = false;
+        this.erpPostingStatus = "FAILED: " + errorMessage;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Finalize/complete the GRN.
+     * Named markFinalized to avoid conflict with Object.finalize()
+     */
+    public void markFinalized() {
+        if (!canFinalize()) {
+            throw new IllegalStateException("GRN cannot be finalized from status: " + status);
+        }
+        this.status = GrnStatus.CLOSED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Cancel the GRN.
+     */
+    public void cancel(String reason) {
+        if (status == GrnStatus.POSTED) {
+            throw new IllegalStateException("Cannot cancel a posted GRN");
+        }
+        this.status = GrnStatus.CANCELLED;
+        this.notes = reason;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Calculate totals from details.
+     */
+    public void calculateTotals() {
+        if (details == null || details.isEmpty()) {
+            totalLines = 0;
+            totalReceivedQty = BigDecimal.ZERO;
+            totalAcceptedQty = BigDecimal.ZERO;
+            totalRejectedQty = BigDecimal.ZERO;
+            return;
+        }
+
+        totalLines = details.size();
+        totalReceivedQty = details.stream()
+            .map(GrnDetail::getReceivedQty)
+            .filter(q -> q != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        totalAcceptedQty = details.stream()
+            .map(GrnDetail::getAcceptedQty)
+            .filter(q -> q != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        totalRejectedQty = details.stream()
+            .map(GrnDetail::getRejectedQty)
+            .filter(q -> q != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

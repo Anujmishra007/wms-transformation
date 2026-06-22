@@ -25,7 +25,7 @@ public class InventoryTransaction {
     private String transactionCode;
 
     // Source/Target
-    private String sourceType;  // RECEIPT, ORDER, ADJUSTMENT, TRANSFER, COUNT
+    private TransactionSource sourceType;
     private String sourceKey;
     private String sourceLineNumber;
 
@@ -45,6 +45,8 @@ public class InventoryTransaction {
     private Quantity quantity;
     private Quantity previousQuantity;
     private Quantity newQuantity;
+    private Quantity quantityBefore;  // Alias for previousQuantity
+    private Quantity quantityAfter;   // Alias for newQuantity
 
     // Lottables (snapshot at transaction time)
     private LottableAttributes lottables;
@@ -61,6 +63,7 @@ public class InventoryTransaction {
 
     // Reference to related transactions (for compensation/reversal)
     private TransactionKey relatedTransactionKey;
+    private String referenceKey;  // Reference to allocation key, hold code, etc.
     private boolean isReversal;
 
     public enum TransactionType {
@@ -94,7 +97,37 @@ public class InventoryTransaction {
         UNNEST,             // Remove from parent container
 
         // Reversal
-        REVERSAL            // Undo previous transaction
+        REVERSAL,           // Undo previous transaction
+
+        // Hold Operations
+        HOLD,               // Apply hold
+        RELEASE_HOLD,       // Release hold
+
+        // Additional Operations
+        CREATE,             // Create inventory
+        ADJUST,             // Adjustment (alias for ADJUSTMENT_IN/OUT)
+        REMOVE,             // Remove inventory
+        SHIP,               // Ship inventory
+        DELETE,             // Delete inventory record
+        FINALIZE,           // Period finalization
+        OWNERSHIP_CHANGE    // Change storer/owner
+    }
+
+    /**
+     * Transaction source types - identifies the origin/trigger of the transaction.
+     */
+    public enum TransactionSource {
+        RECEIPT,        // Inbound receipt
+        ORDER,          // Outbound order
+        ADJUSTMENT,     // Manual adjustment
+        TRANSFER,       // Location transfer
+        COUNT,          // Cycle count
+        HOLD,           // Hold operation
+        PICK,           // Picking operation
+        SHIPMENT,       // Shipment
+        RETURN,         // Customer return
+        SYSTEM,         // System-generated
+        MANUAL          // Manual operation
     }
 
     /**

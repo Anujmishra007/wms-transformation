@@ -61,6 +61,7 @@ public final class PackingOperationsEvents {
 
     public record CartonClosed(
             String eventId,
+            String cartonLpn,
             LpnKey cartonLpnKey,
             OrderKey orderKey,
             List<PackedItem> packedItems,
@@ -95,6 +96,59 @@ public final class PackingOperationsEvents {
             Quantity packedQuantity,
             Quantity shortQuantity,
             String shortReason,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) {}
+
+    // ═══════════════════════════════════════════════════════════════
+    // HELPER RECORDS FOR DETAILED EVENTS
+    // ═══════════════════════════════════════════════════════════════
+
+    public record PackedCartonDetail(
+            String cartonLpn,
+            LpnKey cartonLpnKey,
+            List<PackedItemDetail> items
+    ) {}
+
+    public record PackedItemDetail(
+            SkuKey skuKey,
+            InventoryKey sourceInventoryKey,
+            Quantity packedQuantity
+    ) {}
+
+    // ═══════════════════════════════════════════════════════════════
+    // DETAILED PACK EVENTS (for Kafka consumers)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Pack completed event with detailed carton and item info.
+     * Used for inventory consumption tracking.
+     */
+    public record PackCompleted(
+            String eventId,
+            String packKey,
+            OrderKey orderKey,
+            List<PackedCartonDetail> cartons,
+            Quantity totalQuantity,
+            UserKey packedBy,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) {}
+
+    /**
+     * Pallet completion event - triggers nesting/consolidation.
+     */
+    public record PalletCompleted(
+            String eventId,
+            String palletLpn,
+            LpnKey palletLpnKey,
+            List<LpnKey> cartonLpns,
+            OrderKey orderKey,
+            int totalCartons,
+            Quantity totalQuantity,
+            double weight,
+            String weightUom,
+            UserKey completedBy,
             WarehouseKey warehouseKey,
             Instant occurredAt
     ) {}

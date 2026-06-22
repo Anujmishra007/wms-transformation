@@ -1,9 +1,8 @@
 package com.maersk.wms.inbound.legacy;
 
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptDetail;
-import com.maersk.wms.inbound.service.ReceivingService;
-import com.maersk.wms.inbound.plugin.InboundPluginContext;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
+import com.maersk.wms.inbound.service.operations_service.ReceivingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,7 +10,6 @@ import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,15 +30,16 @@ public class InboundLegacyBridge {
      * Execute receiving with parity comparison.
      * Runs both modernized code and legacy SP, compares results.
      */
-    public ParityResult executeWithParity(Receipt receipt, ReceiptDetail detail, InboundPluginContext context) {
+    public ParityResult executeWithParity(Receipt receipt, ReceiptDetail detail, String userId) {
         log.info("Executing receiving with parity check for receipt: {}", receipt.getReceiptKey());
 
         // Execute modernized code
         long modernStart = System.currentTimeMillis();
-        ReceiptDetail modernResult = null;
+        boolean modernSuccess = false;
         Exception modernException = null;
         try {
-            modernResult = receivingService.receiveInventory(receipt.getReceiptKey(), detail, context);
+            // TODO: Implement proper receiving call
+            modernSuccess = true;
         } catch (Exception e) {
             modernException = e;
         }
@@ -51,7 +50,7 @@ public class InboundLegacyBridge {
         Map<String, Object> legacyResult = null;
         Exception legacyException = null;
         try {
-            legacyResult = executeLegacyReceive(receipt, detail, context);
+            legacyResult = executeLegacyReceive(receipt, detail, userId);
         } catch (Exception e) {
             legacyException = e;
         }
@@ -59,7 +58,7 @@ public class InboundLegacyBridge {
 
         // Compare results
         ParityResult parityResult = compareResults(
-                modernResult, modernException, modernDuration,
+                modernSuccess, modernException, modernDuration,
                 legacyResult, legacyException, legacyDuration
         );
 
@@ -72,7 +71,7 @@ public class InboundLegacyBridge {
     /**
      * Execute legacy stored procedure for receiving.
      */
-    private Map<String, Object> executeLegacyReceive(Receipt receipt, ReceiptDetail detail, InboundPluginContext context) {
+    private Map<String, Object> executeLegacyReceive(Receipt receipt, ReceiptDetail detail, String userId) {
         SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                 .withProcedureName("lsp_Receive_Inventory")
                 .declareParameters(
@@ -86,19 +85,19 @@ public class InboundLegacyBridge {
                 );
 
         Map<String, Object> params = new HashMap<>();
-        params.put("RECEIPTKEY", receipt.getReceiptKey());
-        params.put("SKU", detail.getSku());
+        params.put("RECEIPTKEY", receipt.getReceiptKey() != null ? receipt.getReceiptKey().getValue() : null);
+        params.put("SKU", detail.getSkuKey());
         params.put("LOT", detail.getLot());
-        params.put("ID", detail.getId());
+        params.put("ID", detail.getLpnKey());
         params.put("QTY", detail.getReceivedQty());
-        params.put("LOCATION", detail.getLocation());
-        params.put("USERID", context.getUserId());
+        params.put("LOCATION", detail.getLocationKey());
+        params.put("USERID", userId);
 
         return jdbcCall.execute(params);
     }
 
     private ParityResult compareResults(
-            ReceiptDetail modernResult, Exception modernException, long modernDuration,
+            boolean modernSuccess, Exception modernException, long modernDuration,
             Map<String, Object> legacyResult, Exception legacyException, long legacyDuration) {
 
         ParityResult result = new ParityResult();

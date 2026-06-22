@@ -33,6 +33,7 @@ public class Label {
 
     // Label Content
     private LabelData labelData;
+    private String barcodeValue;
     private String renderedContent; // ZPL, EPL, or other format
     private String contentFormat; // ZPL, EPL, PDF
 
@@ -73,7 +74,8 @@ public class Label {
     }
 
     public enum LabelStatus {
-        GENERATED,      // Label generated, not yet printed
+        CREATED,        // Label created, not yet rendered
+        GENERATED,      // Label generated/rendered, ready for printing
         QUEUED,         // In print queue
         PRINTING,       // Currently printing
         PRINTED,        // Successfully printed
@@ -83,6 +85,11 @@ public class Label {
     }
 
     // Business Methods
+    public void markAsRendered() {
+        this.status = LabelStatus.GENERATED;
+        this.updatedAt = Instant.now();
+    }
+
     public void markAsQueued() {
         this.status = LabelStatus.QUEUED;
         this.updatedAt = Instant.now();
@@ -90,6 +97,13 @@ public class Label {
 
     public void markAsPrinting() {
         this.status = LabelStatus.PRINTING;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markAsPrinted() {
+        this.status = LabelStatus.PRINTED;
+        this.printedCount++;
+        this.lastPrintedAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
@@ -109,6 +123,20 @@ public class Label {
 
     public void void_() {
         this.status = LabelStatus.VOIDED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void voidLabel(String reason) {
+        this.status = LabelStatus.VOIDED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void requestReprint(int copies) {
+        if (this.status == LabelStatus.VOIDED || this.status == LabelStatus.EXPIRED) {
+            throw new IllegalStateException("Cannot reprint voided or expired label");
+        }
+        this.copies = copies;
+        this.status = LabelStatus.GENERATED; // Reset to generated for reprinting
         this.updatedAt = Instant.now();
     }
 

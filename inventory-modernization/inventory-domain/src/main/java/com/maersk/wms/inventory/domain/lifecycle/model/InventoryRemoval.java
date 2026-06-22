@@ -2,6 +2,7 @@ package com.maersk.wms.inventory.domain.lifecycle.model;
 
 import com.maersk.wms.inventory.shared.kernel.identifiers.*;
 import com.maersk.wms.inventory.shared.kernel.valueobjects.*;
+import com.maersk.wms.inventory.domain.core.model.InventoryTransaction;
 
 import lombok.*;
 import java.time.Instant;
@@ -25,7 +26,7 @@ public class InventoryRemoval {
     private String removalReason;
 
     // Source Information
-    private String sourceType;     // ORDER, PICK, SHIPMENT, ADJUSTMENT
+    private InventoryTransaction.TransactionSource sourceType;
     private String sourceKey;
     private String sourceLineNumber;
 
@@ -113,4 +114,20 @@ public class InventoryRemoval {
         this.newOnHand = previousOnHand.subtract(actualRemoved);
         this.completedAt = Instant.now();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public InventoryKey inventoryKey() { return inventoryKey; }
+    public Quantity quantity() { return removalQuantity; }
+    public String reason() { return removalReason; }
+    public InventoryTransaction.TransactionSource removalSource() { return sourceType; }
+    public String sourceKey() { return sourceKey; }
+    public UserKey removedBy() { return requestedBy; }
+    public RemovalType removalType() { return removalType; }
+    public SkuKey skuKey() { return skuKey; }
+    public LocationKey locationKey() { return locationKey; }
+    public LpnKey lpnKey() { return lpnKey; }
+    public AllocationKey allocationKey() { return allocationKey; }
 }

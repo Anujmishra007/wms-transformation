@@ -4,7 +4,10 @@ import com.maersk.wms.outbound.domain.shipping.ShippingManifest;
 import com.maersk.wms.outbound.plugin.OutboundPlugin;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
 import com.maersk.wms.outbound.plugin.PluginResult;
-import com.maersk.wms.outbound.service.shipping.ManifestTransmissionResult;
+import com.maersk.wms.outbound.domain.shipping.dto.ManifestRequirements;
+import com.maersk.wms.outbound.domain.shipping.dto.ManifestTransmissionResult;
+import com.maersk.wms.outbound.domain.shipping.dto.PickupRequest;
+import com.maersk.wms.outbound.domain.shipping.dto.PickupScheduleResult;
 
 /**
  * Plugin interface for shipping manifest operations.

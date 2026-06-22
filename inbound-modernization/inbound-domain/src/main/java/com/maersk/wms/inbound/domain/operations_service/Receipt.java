@@ -2,6 +2,7 @@ package com.maersk.wms.inbound.domain.operations_service;
 
 import com.maersk.wms.inbound.shared.kernel.identifiers.ReceiptKey;
 import com.maersk.wms.inbound.shared.kernel.identifiers.StorerKey;
+import com.maersk.wms.inbound.shared.kernel.valueobjects.Quantity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,8 +41,12 @@ public class Receipt {
     private String poKey;
     private String asnKey;
 
+    // Vendor
+    private String vendorKey;
+
     // Carrier
     private String carrierKey;
+    private String carrierCode;
     private String carrierName;
     private String trailerNumber;
     private String sealNumber;
@@ -49,10 +54,11 @@ public class Receipt {
     // Warehouse info
     private String facility;
     private String door;
+    private String dockDoor;
     private String stagingLocation;
 
     // Schedule
-    private LocalDateTime expectedDate;
+    private java.time.LocalDate expectedDate;
     private LocalDateTime arrivalDate;
     private LocalDateTime receiptDate;
     private LocalDateTime closeDate;
@@ -70,6 +76,7 @@ public class Receipt {
     private String driverName;
 
     // Audit
+    private String createdBy;
     private String addWho;
     private LocalDateTime addDate;
     private String editWho;
@@ -117,5 +124,110 @@ public class Receipt {
         }
         details.add(detail);
         detail.setReceipt(this);
+    }
+
+    /**
+     * Start receiving process.
+     */
+    public void startReceiving(String userId) {
+        this.status = ReceiptStatus.IN_PROGRESS;
+        this.arrivalDate = LocalDateTime.now();
+        this.editWho = userId;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Update totals from detail lines.
+     */
+    public void updateTotals() {
+        if (details == null) return;
+
+        receivedLines = 0;
+        receivedQty = BigDecimal.ZERO;
+        putawayQty = BigDecimal.ZERO;
+
+        for (ReceiptDetail detail : details) {
+            if (detail.getReceivedQty() != null && detail.getReceivedQty().compareTo(BigDecimal.ZERO) > 0) {
+                receivedLines++;
+                receivedQty = receivedQty.add(detail.getReceivedQty());
+            }
+            if (detail.getPutawayQty() != null) {
+                putawayQty = putawayQty.add(detail.getPutawayQty());
+            }
+        }
+    }
+
+    /**
+     * Complete receiving process.
+     */
+    public void completeReceiving(String userId) {
+        this.status = ReceiptStatus.RECEIVED;
+        this.receiptDate = LocalDateTime.now();
+        this.editWho = userId;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Close the receipt.
+     */
+    public void close() {
+        this.status = ReceiptStatus.CLOSED;
+        this.closeDate = LocalDateTime.now();
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Cancel the receipt.
+     */
+    public void cancel(String reason) {
+        this.status = ReceiptStatus.CANCELLED;
+        this.notes = reason;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Record short receipt.
+     */
+    public void recordShort(String lineKey, Quantity quantity, String reason) {
+        // Find detail and record short
+        for (ReceiptDetail detail : details) {
+            if (detail.getReceiptDetailKey() != null && detail.getReceiptDetailKey().equals(lineKey)) {
+                detail.setShortQty(quantity.getValue());
+                detail.setShortReason(reason);
+                break;
+            }
+        }
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Record overage.
+     */
+    public void recordOverage(String lineKey, Quantity quantity, String reason) {
+        // Find detail and record overage
+        for (ReceiptDetail detail : details) {
+            if (detail.getReceiptDetailKey() != null && detail.getReceiptDetailKey().equals(lineKey)) {
+                detail.setOverQty(quantity.getValue());
+                detail.setOverReason(reason);
+                break;
+            }
+        }
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Record damage.
+     */
+    public void recordDamage(String lineKey, Quantity quantity, String damageCode, String reason) {
+        // Find detail and record damage
+        for (ReceiptDetail detail : details) {
+            if (detail.getReceiptDetailKey() != null && detail.getReceiptDetailKey().equals(lineKey)) {
+                detail.setDamagedQty(quantity.getValue());
+                detail.setDamageCode(damageCode);
+                detail.setDamageReason(reason);
+                break;
+            }
+        }
+        this.editDate = LocalDateTime.now();
     }
 }

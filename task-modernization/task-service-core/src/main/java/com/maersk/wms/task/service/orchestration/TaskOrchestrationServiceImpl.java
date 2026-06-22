@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,10 +53,10 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
                 .dependencyKey(dependencyKey)
                 .predecessorTask(predecessorTask)
                 .successorTask(successorTask)
-                .dependencyType(type)
+                .type(type)
                 .lagMinutes(lagMinutes)
                 .status(TaskDependency.DependencyStatus.PENDING)
-                .createdAt(Instant.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskDependency saved = dependencyRepository.save(dependency);
@@ -71,15 +72,15 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     @Override
     @Transactional(readOnly = true)
     public TaskDependency getDependency(DependencyKey dependencyKey) {
-        return dependencyRepository.findByDependencyKey(dependencyKey)
+        return dependencyRepository.findById(dependencyKey)
                 .orElseThrow(() -> new DependencyNotFoundException(dependencyKey.value()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TaskDependency> getDependenciesForTask(TaskKey taskKey) {
-        List<TaskDependency> asPredecessor = dependencyRepository.findByPredecessorTask(taskKey);
-        List<TaskDependency> asSuccessor = dependencyRepository.findBySuccessorTask(taskKey);
+        List<TaskDependency> asPredecessor = dependencyRepository.findByPredecessor(taskKey);
+        List<TaskDependency> asSuccessor = dependencyRepository.findBySuccessor(taskKey);
 
         List<TaskDependency> all = new ArrayList<>();
         all.addAll(asPredecessor);
@@ -90,13 +91,13 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     @Override
     @Transactional(readOnly = true)
     public List<TaskDependency> getPredecessors(TaskKey taskKey) {
-        return dependencyRepository.findBySuccessorTask(taskKey);
+        return dependencyRepository.findBySuccessor(taskKey);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TaskDependency> getSuccessors(TaskKey taskKey) {
-        return dependencyRepository.findByPredecessorTask(taskKey);
+        return dependencyRepository.findByPredecessor(taskKey);
     }
 
     @Override
@@ -160,8 +161,8 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     public void deleteDependency(DependencyKey dependencyKey) {
         log.info("Deleting dependency {}", dependencyKey.value());
 
-        TaskDependency dependency = getDependency(dependencyKey);
-        dependencyRepository.delete(dependency);
+        getDependency(dependencyKey); // Verify exists
+        dependencyRepository.delete(dependencyKey);
 
         eventPublisher.publishEvent(new OrchestrationEvents.DependencyRemoved(
                 dependencyKey, "Deleted", Instant.now(), "SYSTEM"
@@ -195,13 +196,14 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
 
         TaskWorkflow workflow = TaskWorkflow.builder()
                 .workflowKey(workflowKey)
-                .workflowName(name)
+                .name(name)
                 .sourceType(sourceType)
                 .sourceKey(sourceKey)
                 .steps(new ArrayList<>(steps))
-                .currentStepIndex(0)
+                .currentStep(0)
+                .totalSteps(steps.size())
                 .status(TaskWorkflow.WorkflowStatus.CREATED)
-                .createdAt(Instant.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskWorkflow saved = workflowRepository.save(workflow);
@@ -213,7 +215,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     @Override
     @Transactional(readOnly = true)
     public TaskWorkflow getWorkflow(String workflowKey) {
-        return workflowRepository.findByWorkflowKey(workflowKey)
+        return workflowRepository.findById(workflowKey)
                 .orElseThrow(() -> new WorkflowNotFoundException(workflowKey));
     }
 
@@ -226,7 +228,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     @Override
     @Transactional(readOnly = true)
     public List<TaskWorkflow> getWorkflowsBySource(String sourceType, String sourceKey) {
-        return workflowRepository.findBySourceTypeAndSourceKey(sourceType, sourceKey);
+        return workflowRepository.findBySourceTypeAndKey(sourceType, sourceKey);
     }
 
     @Override
@@ -238,13 +240,13 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         workflowRepository.save(workflow);
 
         List<TaskKey> initialTasks = workflow.getSteps().stream()
-                .filter(s -> s.stepIndex() == 0)
-                .map(TaskWorkflow.WorkflowStep::taskKey)
+                .filter(s -> s.getStepNumber() == 1)
+                .map(TaskWorkflow.WorkflowStep::getTaskKey)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         eventPublisher.publishEvent(new OrchestrationEvents.WorkflowStarted(
-                workflowKey, workflow.getWorkflowName(),
+                workflowKey, workflow.getName(),
                 workflow.getSourceType(), workflow.getSourceKey(),
                 initialTasks, Instant.now(), "SYSTEM"
         ));
@@ -257,24 +259,24 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Completing current step for workflow {}", workflowKey);
 
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        TaskWorkflow.WorkflowStep currentStep = workflow.getCurrentStep();
+        TaskWorkflow.WorkflowStep currentStep = workflow.getCurrentStepDetails();
 
         workflow.completeCurrentStep();
         workflowRepository.save(workflow);
 
         eventPublisher.publishEvent(new OrchestrationEvents.WorkflowStepCompleted(
-                workflowKey, currentStep.stepIndex(), currentStep.stepName(),
-                currentStep.taskKey(), Map.of(), Instant.now()
+                workflowKey, currentStep.getStepNumber(), currentStep.getStepName(),
+                currentStep.getTaskKey(), Map.of(), Instant.now()
         ));
 
-        if (workflow.isComplete()) {
+        if (workflow.getStatus() == TaskWorkflow.WorkflowStatus.COMPLETED) {
             eventPublisher.publishEvent(new OrchestrationEvents.WorkflowCompleted(
                     workflowKey, workflow.getSteps().size(),
-                    workflow.getCurrentStepIndex() + 1, Map.of(), Instant.now()
+                    workflow.getCurrentStep(), Map.of(), Instant.now()
             ));
         }
 
-        log.info("Completed step {} for workflow {}", currentStep.stepIndex(), workflowKey);
+        log.info("Completed step {} for workflow {}", currentStep.getStepNumber(), workflowKey);
     }
 
     @Override
@@ -282,17 +284,17 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Failing current step for workflow {} - error: {}", workflowKey, error);
 
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        TaskWorkflow.WorkflowStep currentStep = workflow.getCurrentStep();
+        TaskWorkflow.WorkflowStep currentStep = workflow.getCurrentStepDetails();
 
         workflow.failCurrentStep(error);
         workflowRepository.save(workflow);
 
         eventPublisher.publishEvent(new OrchestrationEvents.WorkflowStepFailed(
-                workflowKey, currentStep.stepIndex(), currentStep.stepName(),
-                currentStep.taskKey(), "STEP_FAILED", error, Instant.now()
+                workflowKey, currentStep.getStepNumber(), currentStep.getStepName(),
+                currentStep.getTaskKey(), "STEP_FAILED", error, Instant.now()
         ));
 
-        log.info("Failed step {} for workflow {}", currentStep.stepIndex(), workflowKey);
+        log.info("Failed step {} for workflow {}", currentStep.getStepNumber(), workflowKey);
     }
 
     @Override
@@ -300,7 +302,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Retrying current step for workflow {}", workflowKey);
 
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        workflow.retryCurrentStep();
+        workflow.retry();
         workflowRepository.save(workflow);
 
         log.info("Retried step for workflow {}", workflowKey);
@@ -311,7 +313,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Cancelling workflow {}", workflowKey);
 
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        int completedSteps = workflow.getCurrentStepIndex();
+        int completedSteps = workflow.getCompletedSteps();
         int remainingSteps = workflow.getSteps().size() - completedSteps;
 
         workflow.cancel();
@@ -328,14 +330,14 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
     @Transactional(readOnly = true)
     public Optional<TaskWorkflow.WorkflowStep> getCurrentStep(String workflowKey) {
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        return Optional.ofNullable(workflow.getCurrentStep());
+        return Optional.ofNullable(workflow.getCurrentStepDetails());
     }
 
     @Override
     @Transactional(readOnly = true)
     public double getWorkflowProgress(String workflowKey) {
         TaskWorkflow workflow = getWorkflow(workflowKey);
-        return workflow.getProgress();
+        return workflow.getProgressPercent();
     }
 
     // ==================== Cross-Service Coordination ====================
@@ -345,7 +347,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Task created notification: {} from {}", taskKey.value(), sourceService);
 
         // Auto-resolve dependencies where this task is the predecessor
-        List<TaskDependency> asSuccessor = dependencyRepository.findByPredecessorTask(taskKey);
+        List<TaskDependency> asSuccessor = dependencyRepository.findByPredecessor(taskKey);
         // These will be resolved when task completes, not on creation
     }
 
@@ -354,7 +356,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
         log.info("Task completed notification: {} from {}", taskKey.value(), sourceService);
 
         // Resolve all dependencies where this task is the predecessor
-        List<TaskDependency> dependencies = dependencyRepository.findByPredecessorTask(taskKey);
+        List<TaskDependency> dependencies = dependencyRepository.findByPredecessor(taskKey);
         dependencies.forEach(d -> {
             if (d.getStatus() == TaskDependency.DependencyStatus.PENDING) {
                 resolveDependency(d.getDependencyKey());
@@ -371,7 +373,7 @@ public class TaskOrchestrationServiceImpl implements TaskOrchestrationService {
                 taskKey.value(), sourceService, error);
 
         // Block all dependencies where this task is the predecessor
-        List<TaskDependency> dependencies = dependencyRepository.findByPredecessorTask(taskKey);
+        List<TaskDependency> dependencies = dependencyRepository.findByPredecessor(taskKey);
         dependencies.forEach(d -> {
             if (d.getStatus() == TaskDependency.DependencyStatus.PENDING) {
                 d.block();

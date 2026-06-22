@@ -1,7 +1,7 @@
 package com.maersk.wms.inbound.plugin.receiving;
 
-import com.maersk.wms.inbound.domain.receiving.Receipt;
-import com.maersk.wms.inbound.domain.receiving.ReceiptDetail;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
 
 /**
  * Plugin interface for Receiving subdomain customization.

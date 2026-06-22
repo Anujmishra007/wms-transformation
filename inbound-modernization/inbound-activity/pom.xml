@@ -19,8 +19,23 @@
             <artifactId>inbound-domain</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>inbound-service-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>inbound-acl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

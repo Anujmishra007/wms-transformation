@@ -98,31 +98,29 @@ public class WaveController {
     @Data
     @lombok.Builder
     public static class WaveResponse {
-        private Long id;
-        private String waveNumber;
+        private String waveKey;
         private String waveType;
         private String status;
-        private int orderCount;
-        private int lineCount;
-        private int totalUnits;
+        private int totalOrders;
+        private int totalLines;
+        private java.math.BigDecimal totalQty;
         private String createdBy;
-        private String createdAt;
+        private String addDate;
         private String releasedBy;
-        private String releasedAt;
+        private String actualStartTime;
 
         public static WaveResponse fromEntity(Wave wave) {
             return WaveResponse.builder()
-                    .id(wave.getId())
-                    .waveNumber(wave.getWaveNumber())
+                    .waveKey(wave.getWaveKey())
                     .waveType(wave.getWaveType())
                     .status(wave.getStatus() != null ? wave.getStatus().name() : null)
-                    .orderCount(wave.getOrderCount())
-                    .lineCount(wave.getLineCount())
-                    .totalUnits(wave.getTotalUnits())
+                    .totalOrders(wave.getTotalOrders())
+                    .totalLines(wave.getTotalLines())
+                    .totalQty(wave.getTotalQty())
                     .createdBy(wave.getCreatedBy())
-                    .createdAt(wave.getCreatedAt() != null ? wave.getCreatedAt().toString() : null)
+                    .addDate(wave.getAddDate() != null ? wave.getAddDate().toString() : null)
                     .releasedBy(wave.getReleasedBy())
-                    .releasedAt(wave.getReleasedAt() != null ? wave.getReleasedAt().toString() : null)
+                    .actualStartTime(wave.getActualStartTime() != null ? wave.getActualStartTime().toString() : null)
                     .build();
         }
     }

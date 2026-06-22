@@ -5,6 +5,7 @@ package com.maersk.wms.inbound.domain.document_service;
  */
 public enum PoStatus {
     DRAFT("0", "Draft", "PO created but not yet released"),
+    APPROVED("A", "Approved", "PO approved"),
     OPEN("1", "Open", "PO released and open for receiving"),
     PARTIAL("2", "Partially Received", "Some lines received"),
     RECEIVED("3", "Fully Received", "All lines received"),

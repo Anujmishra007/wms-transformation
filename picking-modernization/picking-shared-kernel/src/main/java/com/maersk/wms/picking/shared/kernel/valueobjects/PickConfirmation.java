@@ -49,4 +49,8 @@ public class PickConfirmation {
     public boolean isShort() {
         return qtyShorted.compareTo(BigDecimal.ZERO) > 0;
     }
+
+    public BigDecimal pickedQuantity() {
+        return qtyPicked;
+    }
 }

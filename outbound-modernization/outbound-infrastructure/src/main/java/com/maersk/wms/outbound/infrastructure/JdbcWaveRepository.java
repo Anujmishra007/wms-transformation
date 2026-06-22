@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,66 +25,118 @@ public class JdbcWaveRepository implements WaveRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @Override
-    public Wave save(Wave wave) {
-        if (wave.getId() == null) {
-            return insert(wave);
-        }
-        return update(wave);
-    }
+    private static final String SELECT_BASE = """
+            SELECT WAVEKEY, STORERKEY, WAVETYPE, WAVEDESCRIPTION, STATUS,
+                   PLANNEDSTARTTIME, ACTUALSTARTTIME, COMPLETEDTIME,
+                   TOTALORDERS, TOTALLINES, TOTALQTY, TOTALWEIGHT, TOTALVOLUME,
+                   ORDERSALLOCATED, ORDERSPICKED, ORDERSPACKED, ORDERSSHIPPED,
+                   CARRIERCODE, ROUTEKEY, DOOR,
+                   CREATEDBY, RELEASEDBY,
+                   ADDWHO, ADDDATE, EDITWHO, EDITDATE
+            FROM WAVE
+            """;
 
     @Override
-    public Optional<Wave> findById(Long id) {
-        String sql = "SELECT * FROM WAVEHEADER WHERE WAVEHEADER_ID = ?";
-        List<Wave> results = jdbcTemplate.query(sql, new WaveRowMapper(), id);
+    public Optional<Wave> findByKey(String waveKey) {
+        String sql = SELECT_BASE + " WHERE WAVEKEY = ?";
+        List<Wave> results = jdbcTemplate.query(sql, new WaveRowMapper(), waveKey);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     @Override
-    public Optional<Wave> findByWaveNumber(String waveNumber) {
-        String sql = "SELECT * FROM WAVEHEADER WHERE WAVEKEY = ?";
-        List<Wave> results = jdbcTemplate.query(sql, new WaveRowMapper(), waveNumber);
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    public Optional<Wave> findByWaveKey(String waveKey) {
+        return findByKey(waveKey);
     }
 
     @Override
     public List<Wave> findByStatus(WaveStatus status) {
-        String sql = "SELECT * FROM WAVEHEADER WHERE STATUS = ?";
+        String sql = SELECT_BASE + " WHERE STATUS = ?";
         return jdbcTemplate.query(sql, new WaveRowMapper(), status.getCode());
     }
 
     @Override
-    public void delete(Wave wave) {
-        String sql = "DELETE FROM WAVEHEADER WHERE WAVEHEADER_ID = ?";
-        jdbcTemplate.update(sql, wave.getId());
+    public List<Wave> findByStorerKey(String storerKey) {
+        String sql = SELECT_BASE + " WHERE STORERKEY = ?";
+        return jdbcTemplate.query(sql, new WaveRowMapper(), storerKey);
+    }
+
+    @Override
+    public List<Wave> findByDateRange(LocalDateTime fromDate, LocalDateTime toDate) {
+        String sql = SELECT_BASE + " WHERE ADDDATE BETWEEN ? AND ?";
+        return jdbcTemplate.query(sql, new WaveRowMapper(), fromDate, toDate);
+    }
+
+    @Override
+    public List<Wave> findActiveWaves(String storerKey) {
+        String sql = SELECT_BASE + " WHERE STORERKEY = ? AND STATUS IN (?, ?, ?)";
+        return jdbcTemplate.query(sql, new WaveRowMapper(),
+                storerKey,
+                WaveStatus.RELEASED.getCode(),
+                WaveStatus.IN_PROGRESS.getCode(),
+                WaveStatus.PICKING.getCode());
+    }
+
+    @Override
+    public Wave save(Wave wave) {
+        if (exists(wave.getWaveKey())) {
+            return update(wave);
+        }
+        return insert(wave);
+    }
+
+    @Override
+    public void delete(String waveKey) {
+        String sql = "DELETE FROM WAVE WHERE WAVEKEY = ?";
+        jdbcTemplate.update(sql, waveKey);
+    }
+
+    @Override
+    public String generateWaveKey() {
+        String keyQuery = "EXEC nspg_GetKey 'WAVE', 1";
+        String key = jdbcTemplate.queryForObject(keyQuery, String.class);
+        return "W" + key;
+    }
+
+    private boolean exists(String waveKey) {
+        if (waveKey == null) {
+            return false;
+        }
+        String sql = "SELECT COUNT(*) FROM WAVE WHERE WAVEKEY = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, waveKey);
+        return count != null && count > 0;
     }
 
     private Wave insert(Wave wave) {
-        // Get next key
-        String keyQuery = "EXEC nspg_GetKey 'WAVEHEADER', 1";
-        Long newId = jdbcTemplate.queryForObject(keyQuery, Long.class);
-        wave.setId(newId);
-
-        // Generate wave number
-        String waveNumberQuery = "EXEC nspg_GetKey 'WAVE', 1";
-        Long waveNum = jdbcTemplate.queryForObject(waveNumberQuery, Long.class);
-        wave.setWaveNumber("W" + String.format("%010d", waveNum));
+        String waveKey = wave.getWaveKey();
+        if (waveKey == null) {
+            waveKey = generateWaveKey();
+            wave.setWaveKey(waveKey);
+        }
 
         String sql = """
-            INSERT INTO WAVEHEADER (WAVEHEADER_ID, WAVEKEY, WAVETYPE, STATUS,
-                ORDERCOUNT, LINECOUNT, TOTALUNITS, ADDWHO, ADDDATE)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+            INSERT INTO WAVE (WAVEKEY, STORERKEY, WAVETYPE, WAVEDESCRIPTION, STATUS,
+                PLANNEDSTARTTIME, TOTALORDERS, TOTALLINES, TOTALQTY, TOTALWEIGHT, TOTALVOLUME,
+                CARRIERCODE, ROUTEKEY, DOOR, CREATEDBY, ADDWHO, ADDDATE)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
             """;
 
         jdbcTemplate.update(sql,
-                wave.getId(),
-                wave.getWaveNumber(),
+                waveKey,
+                wave.getStorerKey(),
                 wave.getWaveType(),
-                wave.getStatus().getCode(),
-                wave.getOrderCount(),
-                wave.getLineCount(),
-                wave.getTotalUnits(),
-                wave.getCreatedBy()
+                wave.getWaveDescription(),
+                wave.getStatus() != null ? wave.getStatus().getCode() : WaveStatus.PLANNED.getCode(),
+                wave.getPlannedStartTime(),
+                wave.getTotalOrders(),
+                wave.getTotalLines(),
+                wave.getTotalQty(),
+                wave.getTotalWeight(),
+                wave.getTotalVolume(),
+                wave.getCarrierCode(),
+                wave.getRouteKey(),
+                wave.getDoor(),
+                wave.getCreatedBy(),
+                wave.getAddWho()
         );
 
         return wave;
@@ -91,27 +144,37 @@ public class JdbcWaveRepository implements WaveRepository {
 
     private Wave update(Wave wave) {
         String sql = """
-            UPDATE WAVEHEADER SET
+            UPDATE WAVE SET
                 STATUS = ?,
-                ORDERCOUNT = ?,
-                LINECOUNT = ?,
-                TOTALUNITS = ?,
-                RELEASEDDATE = ?,
+                ACTUALSTARTTIME = ?,
+                COMPLETEDTIME = ?,
+                TOTALORDERS = ?,
+                TOTALLINES = ?,
+                TOTALQTY = ?,
+                ORDERSALLOCATED = ?,
+                ORDERSPICKED = ?,
+                ORDERSPACKED = ?,
+                ORDERSSHIPPED = ?,
                 RELEASEDBY = ?,
                 EDITWHO = ?,
                 EDITDATE = GETDATE()
-            WHERE WAVEHEADER_ID = ?
+            WHERE WAVEKEY = ?
             """;
 
         jdbcTemplate.update(sql,
-                wave.getStatus().getCode(),
-                wave.getOrderCount(),
-                wave.getLineCount(),
-                wave.getTotalUnits(),
-                wave.getReleasedAt(),
+                wave.getStatus() != null ? wave.getStatus().getCode() : null,
+                wave.getActualStartTime(),
+                wave.getCompletedTime(),
+                wave.getTotalOrders(),
+                wave.getTotalLines(),
+                wave.getTotalQty(),
+                wave.getOrdersAllocated(),
+                wave.getOrdersPicked(),
+                wave.getOrdersPacked(),
+                wave.getOrdersShipped(),
                 wave.getReleasedBy(),
-                wave.getUpdatedBy(),
-                wave.getId()
+                wave.getEditWho(),
+                wave.getWaveKey()
         );
 
         return wave;
@@ -120,23 +183,34 @@ public class JdbcWaveRepository implements WaveRepository {
     private static class WaveRowMapper implements RowMapper<Wave> {
         @Override
         public Wave mapRow(ResultSet rs, int rowNum) throws SQLException {
-            Wave wave = new Wave();
-            wave.setId(rs.getLong("WAVEHEADER_ID"));
-            wave.setWaveNumber(rs.getString("WAVEKEY"));
-            wave.setWaveType(rs.getString("WAVETYPE"));
-            wave.setStatus(WaveStatus.fromCode(rs.getString("STATUS")));
-            wave.setOrderCount(rs.getInt("ORDERCOUNT"));
-            wave.setLineCount(rs.getInt("LINECOUNT"));
-            wave.setTotalUnits(rs.getInt("TOTALUNITS"));
-            wave.setCreatedBy(rs.getString("ADDWHO"));
-            if (rs.getTimestamp("ADDDATE") != null) {
-                wave.setCreatedAt(rs.getTimestamp("ADDDATE").toLocalDateTime());
-            }
-            if (rs.getTimestamp("RELEASEDDATE") != null) {
-                wave.setReleasedAt(rs.getTimestamp("RELEASEDDATE").toLocalDateTime());
-            }
-            wave.setReleasedBy(rs.getString("RELEASEDBY"));
-            return wave;
+            return Wave.builder()
+                    .waveKey(rs.getString("WAVEKEY"))
+                    .storerKey(rs.getString("STORERKEY"))
+                    .waveType(rs.getString("WAVETYPE"))
+                    .waveDescription(rs.getString("WAVEDESCRIPTION"))
+                    .status(WaveStatus.fromCode(rs.getString("STATUS")))
+                    .plannedStartTime(rs.getTimestamp("PLANNEDSTARTTIME") != null ? rs.getTimestamp("PLANNEDSTARTTIME").toLocalDateTime() : null)
+                    .actualStartTime(rs.getTimestamp("ACTUALSTARTTIME") != null ? rs.getTimestamp("ACTUALSTARTTIME").toLocalDateTime() : null)
+                    .completedTime(rs.getTimestamp("COMPLETEDTIME") != null ? rs.getTimestamp("COMPLETEDTIME").toLocalDateTime() : null)
+                    .totalOrders(rs.getInt("TOTALORDERS"))
+                    .totalLines(rs.getInt("TOTALLINES"))
+                    .totalQty(rs.getBigDecimal("TOTALQTY"))
+                    .totalWeight(rs.getBigDecimal("TOTALWEIGHT"))
+                    .totalVolume(rs.getBigDecimal("TOTALVOLUME"))
+                    .ordersAllocated(rs.getInt("ORDERSALLOCATED"))
+                    .ordersPicked(rs.getInt("ORDERSPICKED"))
+                    .ordersPacked(rs.getInt("ORDERSPACKED"))
+                    .ordersShipped(rs.getInt("ORDERSSHIPPED"))
+                    .carrierCode(rs.getString("CARRIERCODE"))
+                    .routeKey(rs.getString("ROUTEKEY"))
+                    .door(rs.getString("DOOR"))
+                    .createdBy(rs.getString("CREATEDBY"))
+                    .releasedBy(rs.getString("RELEASEDBY"))
+                    .addWho(rs.getString("ADDWHO"))
+                    .addDate(rs.getTimestamp("ADDDATE") != null ? rs.getTimestamp("ADDDATE").toLocalDateTime() : null)
+                    .editWho(rs.getString("EDITWHO"))
+                    .editDate(rs.getTimestamp("EDITDATE") != null ? rs.getTimestamp("EDITDATE").toLocalDateTime() : null)
+                    .build();
         }
     }
 }

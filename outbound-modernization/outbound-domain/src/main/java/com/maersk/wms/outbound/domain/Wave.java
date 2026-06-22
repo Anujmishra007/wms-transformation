@@ -43,8 +43,11 @@ public class Wave {
     private int ordersShipped;
 
     private String carrierCode;
+    private String serviceCode;
     private String routeKey;
+    private String route;
     private String door;
+    private LocalDateTime expectedShipDate;
 
     private String createdBy;
     private String releasedBy;

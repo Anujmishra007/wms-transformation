@@ -11,6 +11,7 @@ public enum ReturnStatus {
     INSPECTED("4", "Inspected"),
     DISPOSITIONING("5", "Dispositioning"),
     DISPOSITIONED("6", "Dispositioned"),
+    PUTAWAY("6A", "Putaway Started"),
     PUTAWAY_IN_PROGRESS("7", "Putaway In Progress"),
     PUTAWAY_COMPLETE("8", "Putaway Complete"),
     CLOSED("9", "Closed"),

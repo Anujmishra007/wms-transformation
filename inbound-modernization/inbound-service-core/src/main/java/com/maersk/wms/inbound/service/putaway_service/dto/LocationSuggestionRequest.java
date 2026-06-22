@@ -30,4 +30,14 @@ public class LocationSuggestionRequest {
     private boolean isReturn;
     private String disposition;
     private String conditionCode;
+
+    // Additional fields for location allocation
+    private String storerKey;
+    private String zone;
+    private String locationType;
+    private BigDecimal requiredCapacity;
+    private int maxSuggestions;
+    private String velocityClass;
+    private boolean preferConsolidation;
+    private boolean preferEmpty;
 }

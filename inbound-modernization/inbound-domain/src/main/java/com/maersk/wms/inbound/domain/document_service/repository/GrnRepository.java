@@ -15,10 +15,15 @@ public interface GrnRepository {
     Optional<Grn> findByKey(String grnKey);
     Optional<Grn> findByGrnNumber(String grnNumber);
     Optional<Grn> findByReceiptKey(String receiptKey);
+    List<Grn> findByStorerKey(StorerKey storerKey);
     List<Grn> findByStorerAndStatus(StorerKey storerKey, GrnStatus status);
+    List<Grn> findByStatus(GrnStatus status);
     List<Grn> findPendingApproval(StorerKey storerKey);
     List<Grn> findNotPostedToErp(StorerKey storerKey);
+    List<Grn> findPendingErpPosting();
+    List<Grn> findByPoKey(String poKey);
     List<Grn> findByDateRange(LocalDateTime from, LocalDateTime to);
+    List<Grn> findAll();
     Grn save(Grn grn);
     void delete(String grnKey);
     boolean exists(String grnKey);

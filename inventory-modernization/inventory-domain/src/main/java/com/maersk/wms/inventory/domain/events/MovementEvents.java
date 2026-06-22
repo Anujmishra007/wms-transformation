@@ -116,4 +116,21 @@ public final class MovementEvents {
             return "inventory.location_consolidated";
         }
     }
+
+    public record InventoryTransferred(
+            InventoryKey inventoryKey,
+            SkuKey skuKey,
+            LotKey lotKey,
+            LocationKey fromLocation,
+            LocationKey toLocation,
+            Quantity quantity,
+            String reason,
+            UserKey transferredBy,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.transferred";
+        }
+    }
 }

@@ -5,7 +5,7 @@ import com.maersk.wms.outbound.domain.shipping.MasterBillOfLading;
 import com.maersk.wms.outbound.plugin.OutboundPlugin;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
 import com.maersk.wms.outbound.plugin.PluginResult;
-import com.maersk.wms.outbound.service.shipping.MbolValidationResult;
+import com.maersk.wms.outbound.domain.shipping.dto.MbolValidationResult;
 
 /**
  * Plugin interface for Master Bill of Lading operations.

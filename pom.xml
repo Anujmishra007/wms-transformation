@@ -43,39 +43,7 @@
         <module>outbound-modernization</module>
         <module>masterdata-modernization</module>
         <module>task-modernization</module>
-
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- E2E TESTING                                                      -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- <module>wms-e2e-test</module> -->
-
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- COMMON SERVICES (Bottom Layer - Shared across domains)          -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <module>master-data-service</module>
         <module>printing-service</module>
-        <module>task-management-service</module>
-
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- CORE / INVENTORY DOMAIN (Center - Heart of WMS)                  -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <module>inventory-service</module>
-        <module>inventory-operations-service</module>
-        <module>packing-operations-service</module>
-
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- INBOUND DOMAIN (Left Side)                                       -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <module>inbound-service</module>
-        <module>inbound-operations-service</module>
-        <module>putaway-service</module>
-
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- OUTBOUND DOMAIN (Right Side)                                     -->
-        <!-- ═══════════════════════════════════════════════════════════════ -->
-        <module>order-service</module>
-        <module>inventory-allocation-service</module>
-        <module>picking-operations-service</module>
     </modules>
 
     <properties>
@@ -110,6 +78,7 @@
         <wiremock.version>3.5.2</wiremock.version>
         <archunit.version>1.2.1</archunit.version>
         <karate.version>1.4.1</karate.version>
+        <okhttp.version>4.12.0</okhttp.version>
 
         <!-- API Documentation -->
         <springdoc.version>2.5.0</springdoc.version>
@@ -133,6 +102,11 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- SHARED LIBRARIES                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
+            <dependency>
+                <groupId>com.maersk.wms</groupId>
+                <artifactId>wms-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.maersk.wms</groupId>
                 <artifactId>wms-common</artifactId>
@@ -599,6 +573,12 @@
                 <groupId>com.intuit.karate</groupId>
                 <artifactId>karate-junit5</artifactId>
                 <version>${karate.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>mockwebserver</artifactId>
+                <version>${okhttp.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

@@ -2,6 +2,7 @@ package com.maersk.wms.outbound.activity.impl;
 
 import com.maersk.wms.outbound.activity.ShippingActivities;
 import com.maersk.wms.outbound.domain.shipping.*;
+import com.maersk.wms.outbound.domain.shipping.dto.*;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
 import com.maersk.wms.outbound.service.shipping.*;
 import lombok.RequiredArgsConstructor;
@@ -380,8 +381,7 @@ public class ShippingActivitiesImpl implements ShippingActivities {
         try {
             OutboundPluginContext context = buildContext(clientCode, facilityCode);
 
-            com.maersk.wms.outbound.plugin.shipping.PickupRequest pickupRequest =
-                    com.maersk.wms.outbound.plugin.shipping.PickupRequest.builder()
+            PickupRequest pickupRequest = PickupRequest.builder()
                             .pickupDate(LocalDate.parse(input.getPickupDate()))
                             .readyTime(LocalTime.parse(input.getReadyTime()))
                             .closeTime(LocalTime.parse(input.getCloseTime()))
@@ -395,8 +395,7 @@ public class ShippingActivitiesImpl implements ShippingActivities {
                             .specialInstructions(input.getSpecialInstructions())
                             .build();
 
-            com.maersk.wms.outbound.plugin.shipping.PickupScheduleResult result =
-                    manifestService.schedulePickup(manifestKey, pickupRequest, context);
+            PickupScheduleResult result = manifestService.schedulePickup(manifestKey, pickupRequest, context);
 
             return PickupResult.builder()
                     .success(result.isSuccess())

@@ -12,7 +12,9 @@ import java.util.List;
 public record AllocationCriteria(
         SkuKey skuKey,
         StorerKey storerKey,
-        Quantity requestedQuantity,
+        OrderKey orderKey,
+        WarehouseKey warehouseKey,
+        Quantity requiredQuantity,
         FifoStrategy fifoStrategy,
         List<String> preferredLocations,
         List<String> excludedLocations,
@@ -23,7 +25,8 @@ public record AllocationCriteria(
         boolean excludeOnHold,
         boolean excludeAllocated,
         Integer maxLocationsToAllocate,
-        String zonePreference
+        String zonePreference,
+        UserKey allocatedBy
 ) {
 
     public enum FifoStrategy {
@@ -39,10 +42,17 @@ public record AllocationCriteria(
         CUSTOM                  // Client-specific strategy
     }
 
+    // Alias for requestedQuantity for backward compatibility
+    public Quantity requestedQuantity() {
+        return requiredQuantity;
+    }
+
     public static AllocationCriteria standardFifo(SkuKey skuKey, StorerKey storerKey, Quantity quantity) {
         return new AllocationCriteria(
                 skuKey,
                 storerKey,
+                null,  // orderKey
+                null,  // warehouseKey
                 quantity,
                 FifoStrategy.FIFO_RECEIPT_DATE,
                 List.of(),
@@ -54,7 +64,8 @@ public record AllocationCriteria(
                 true,
                 false,
                 null,
-                null
+                null,
+                null  // allocatedBy
         );
     }
 
@@ -62,6 +73,8 @@ public record AllocationCriteria(
         return new AllocationCriteria(
                 skuKey,
                 storerKey,
+                null,  // orderKey
+                null,  // warehouseKey
                 quantity,
                 FifoStrategy.FIFO_EXPIRY_DATE,
                 List.of(),
@@ -73,28 +86,50 @@ public record AllocationCriteria(
                 true,
                 false,
                 null,
-                null
+                null,
+                null  // allocatedBy
         );
     }
 
+    public AllocationCriteria withOrder(OrderKey order) {
+        return new AllocationCriteria(skuKey, storerKey, order, warehouseKey, requiredQuantity, fifoStrategy,
+                preferredLocations, excludedLocations, allowedStatuses, requiredLottables,
+                lottableMatchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
+                maxLocationsToAllocate, zonePreference, allocatedBy);
+    }
+
+    public AllocationCriteria withWarehouse(WarehouseKey warehouse) {
+        return new AllocationCriteria(skuKey, storerKey, orderKey, warehouse, requiredQuantity, fifoStrategy,
+                preferredLocations, excludedLocations, allowedStatuses, requiredLottables,
+                lottableMatchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
+                maxLocationsToAllocate, zonePreference, allocatedBy);
+    }
+
+    public AllocationCriteria withAllocatedBy(UserKey user) {
+        return new AllocationCriteria(skuKey, storerKey, orderKey, warehouseKey, requiredQuantity, fifoStrategy,
+                preferredLocations, excludedLocations, allowedStatuses, requiredLottables,
+                lottableMatchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
+                maxLocationsToAllocate, zonePreference, user);
+    }
+
     public AllocationCriteria withPreferredLocations(List<String> locations) {
-        return new AllocationCriteria(skuKey, storerKey, requestedQuantity, fifoStrategy,
+        return new AllocationCriteria(skuKey, storerKey, orderKey, warehouseKey, requiredQuantity, fifoStrategy,
                 locations, excludedLocations, allowedStatuses, requiredLottables,
                 lottableMatchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
-                maxLocationsToAllocate, zonePreference);
+                maxLocationsToAllocate, zonePreference, allocatedBy);
     }
 
     public AllocationCriteria withLottableRequirements(LottableAttributes lottables, boolean[] matchFlags) {
-        return new AllocationCriteria(skuKey, storerKey, requestedQuantity, fifoStrategy,
+        return new AllocationCriteria(skuKey, storerKey, orderKey, warehouseKey, requiredQuantity, fifoStrategy,
                 preferredLocations, excludedLocations, allowedStatuses, lottables,
                 matchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
-                maxLocationsToAllocate, zonePreference);
+                maxLocationsToAllocate, zonePreference, allocatedBy);
     }
 
     public AllocationCriteria withZonePreference(String zone) {
-        return new AllocationCriteria(skuKey, storerKey, requestedQuantity, fifoStrategy,
+        return new AllocationCriteria(skuKey, storerKey, orderKey, warehouseKey, requiredQuantity, fifoStrategy,
                 preferredLocations, excludedLocations, allowedStatuses, requiredLottables,
                 lottableMatchFlags, expiryDateThreshold, excludeOnHold, excludeAllocated,
-                maxLocationsToAllocate, zone);
+                maxLocationsToAllocate, zone, allocatedBy);
     }
 }

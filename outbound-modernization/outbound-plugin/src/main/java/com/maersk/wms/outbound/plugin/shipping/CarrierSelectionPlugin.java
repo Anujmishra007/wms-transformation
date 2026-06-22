@@ -5,8 +5,8 @@ import com.maersk.wms.outbound.domain.shipping.Carrier;
 import com.maersk.wms.outbound.domain.shipping.MasterBillOfLading;
 import com.maersk.wms.outbound.plugin.OutboundPlugin;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
-import com.maersk.wms.outbound.service.shipping.CarrierChangeValidation;
-import com.maersk.wms.outbound.service.shipping.CarrierSelectionResult;
+import com.maersk.wms.outbound.domain.shipping.dto.CarrierChangeValidation;
+import com.maersk.wms.outbound.domain.shipping.dto.CarrierSelectionResult;
 
 import java.util.List;
 

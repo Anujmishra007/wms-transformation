@@ -30,11 +30,13 @@ public class PrintJobController {
         PrintSettings settings = request.settings() != null ?
                 new PrintSettings(
                         request.settings().copies(),
-                        request.settings().dpi(),
+                        request.settings().dpi() > 0 ? request.settings().dpi() : 203,
+                        "LABEL",                // mediaType
+                        "PORTRAIT",             // orientation
+                        false,                  // collate
                         request.settings().darkness(),
-                        request.settings().speed(),
-                        request.settings().rotation()
-                ) : null;
+                        request.settings().speed()
+                ) : PrintSettings.defaults();
 
         PrintJob job = printJobService.createJobWithLabels(
                 request.jobName(),

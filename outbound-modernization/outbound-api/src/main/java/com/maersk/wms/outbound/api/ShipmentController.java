@@ -119,17 +119,17 @@ public class ShipmentController {
     @Data
     @lombok.Builder
     public static class ShipmentResponse {
-        private Long id;
-        private String shipmentId;
-        private String orderNumber;
+        private String shipmentKey;
+        private String externalShipmentKey;
+        private List<String> orderKeys;
         private String status;
         private String shipmentType;
         private String carrierCode;
-        private String shipMethod;
+        private String serviceLevel;
         private String trackingNumber;
         private BigDecimal totalWeight;
         private BigDecimal freightCharge;
-        private int cartonCount;
+        private int totalCartons;
 
         private String shipToName;
         private String shipToCity;
@@ -137,33 +137,31 @@ public class ShipmentController {
         private String shipToCountry;
         private String shipToZip;
 
-        private String createdBy;
-        private String createdAt;
-        private String shippedBy;
-        private String shippedAt;
+        private String addWho;
+        private String addDate;
+        private String actualShipDate;
 
         public static ShipmentResponse fromEntity(Shipment shipment) {
             return ShipmentResponse.builder()
-                    .id(shipment.getId())
-                    .shipmentId(shipment.getShipmentId())
-                    .orderNumber(shipment.getOrderNumber())
+                    .shipmentKey(shipment.getShipmentKey())
+                    .externalShipmentKey(shipment.getExternalShipmentKey())
+                    .orderKeys(shipment.getOrderKeys())
                     .status(shipment.getStatus() != null ? shipment.getStatus().name() : null)
-                    .shipmentType(shipment.getShipmentType() != null ? shipment.getShipmentType().name() : null)
+                    .shipmentType(shipment.getType() != null ? shipment.getType().name() : null)
                     .carrierCode(shipment.getCarrierCode())
-                    .shipMethod(shipment.getShipMethod())
+                    .serviceLevel(shipment.getServiceLevel())
                     .trackingNumber(shipment.getTrackingNumber())
                     .totalWeight(shipment.getTotalWeight())
                     .freightCharge(shipment.getFreightCharge())
-                    .cartonCount(shipment.getCartonCount())
+                    .totalCartons(shipment.getTotalCartons())
                     .shipToName(shipment.getShipToName())
                     .shipToCity(shipment.getShipToCity())
                     .shipToState(shipment.getShipToState())
                     .shipToCountry(shipment.getShipToCountry())
                     .shipToZip(shipment.getShipToZip())
-                    .createdBy(shipment.getCreatedBy())
-                    .createdAt(shipment.getCreatedAt() != null ? shipment.getCreatedAt().toString() : null)
-                    .shippedBy(shipment.getShippedBy())
-                    .shippedAt(shipment.getShippedAt() != null ? shipment.getShippedAt().toString() : null)
+                    .addWho(shipment.getAddWho())
+                    .addDate(shipment.getAddDate() != null ? shipment.getAddDate().toString() : null)
+                    .actualShipDate(shipment.getActualShipDate() != null ? shipment.getActualShipDate().toString() : null)
                     .build();
         }
     }

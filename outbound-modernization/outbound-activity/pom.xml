@@ -19,8 +19,23 @@
             <artifactId>outbound-domain</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>outbound-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.maersk.wms</groupId>
+            <artifactId>outbound-service-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

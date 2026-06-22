@@ -17,16 +17,14 @@ import java.util.stream.Collectors;
 @Builder
 public class OrderResponse {
 
-    private Long id;
-    private String orderNumber;
-    private String externalOrderNumber;
+    private String orderKey;
+    private String externalOrderKey;
     private String orderType;
     private String status;
     private String priority;
-    private String customerCode;
+    private String consigneeKey;
 
     // Ship-to information
-    private String shipToCode;
     private String shipToName;
     private String shipToAddress1;
     private String shipToAddress2;
@@ -37,35 +35,30 @@ public class OrderResponse {
 
     // Shipping
     private String carrierCode;
-    private String shipMethod;
-    private LocalDateTime requiredDate;
+    private LocalDateTime requiredDeliveryDate;
 
     // Summary
     private int lineCount;
-    private BigDecimal totalQty;
-    private BigDecimal allocatedQty;
-    private BigDecimal pickedQty;
-    private BigDecimal shippedQty;
+    private BigDecimal totalQtyOrdered;
+    private BigDecimal totalQtyAllocated;
+    private BigDecimal totalQtyPicked;
+    private BigDecimal totalQtyShipped;
 
     // Lines
     private List<OrderLineResponse> lines;
 
     // Timestamps
-    private LocalDateTime createdAt;
-    private String createdBy;
-    private LocalDateTime releasedAt;
-    private String releasedBy;
+    private LocalDateTime addDate;
+    private String addWho;
 
     public static OrderResponse fromEntity(Order order) {
         return OrderResponse.builder()
-                .id(order.getId())
-                .orderNumber(order.getOrderNumber())
-                .externalOrderNumber(order.getExternalOrderNumber())
-                .orderType(order.getOrderType() != null ? order.getOrderType().name() : null)
+                .orderKey(order.getOrderKey())
+                .externalOrderKey(order.getExternalOrderKey())
+                .orderType(order.getOrderType())
                 .status(order.getStatus() != null ? order.getStatus().name() : null)
                 .priority(order.getPriority() != null ? order.getPriority().name() : null)
-                .customerCode(order.getCustomerCode())
-                .shipToCode(order.getShipToCode())
+                .consigneeKey(order.getConsigneeKey())
                 .shipToName(order.getShipToName())
                 .shipToAddress1(order.getShipToAddress1())
                 .shipToAddress2(order.getShipToAddress2())
@@ -74,76 +67,45 @@ public class OrderResponse {
                 .shipToZip(order.getShipToZip())
                 .shipToCountry(order.getShipToCountry())
                 .carrierCode(order.getCarrierCode())
-                .shipMethod(order.getShipMethod())
-                .requiredDate(order.getRequiredDate())
+                .requiredDeliveryDate(order.getRequiredDeliveryDate())
                 .lineCount(order.getDetails() != null ? order.getDetails().size() : 0)
-                .totalQty(calculateTotalQty(order))
-                .allocatedQty(calculateAllocatedQty(order))
-                .pickedQty(calculatePickedQty(order))
-                .shippedQty(calculateShippedQty(order))
+                .totalQtyOrdered(order.getTotalQtyOrdered())
+                .totalQtyAllocated(order.getTotalQtyAllocated())
+                .totalQtyPicked(order.getTotalQtyPicked())
+                .totalQtyShipped(order.getTotalQtyShipped())
                 .lines(order.getDetails() != null ?
                         order.getDetails().stream()
                                 .map(OrderLineResponse::fromEntity)
                                 .collect(Collectors.toList()) : List.of())
-                .createdAt(order.getCreatedAt())
-                .createdBy(order.getCreatedBy())
-                .releasedAt(order.getReleasedAt())
-                .releasedBy(order.getReleasedBy())
+                .addDate(order.getAddDate())
+                .addWho(order.getAddWho())
                 .build();
-    }
-
-    private static BigDecimal calculateTotalQty(Order order) {
-        if (order.getDetails() == null) return BigDecimal.ZERO;
-        return order.getDetails().stream()
-                .map(d -> d.getOrderedQty() != null ? d.getOrderedQty() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private static BigDecimal calculateAllocatedQty(Order order) {
-        if (order.getDetails() == null) return BigDecimal.ZERO;
-        return order.getDetails().stream()
-                .map(d -> d.getAllocatedQty() != null ? d.getAllocatedQty() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private static BigDecimal calculatePickedQty(Order order) {
-        if (order.getDetails() == null) return BigDecimal.ZERO;
-        return order.getDetails().stream()
-                .map(d -> d.getPickedQty() != null ? d.getPickedQty() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private static BigDecimal calculateShippedQty(Order order) {
-        if (order.getDetails() == null) return BigDecimal.ZERO;
-        return order.getDetails().stream()
-                .map(d -> d.getShippedQty() != null ? d.getShippedQty() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Data
     @Builder
     public static class OrderLineResponse {
-        private Long id;
-        private String lineNumber;
+        private String orderKey;
+        private String orderLineNumber;
         private String sku;
         private String skuDescription;
-        private BigDecimal orderedQty;
-        private BigDecimal allocatedQty;
-        private BigDecimal pickedQty;
-        private BigDecimal shippedQty;
+        private BigDecimal qtyOrdered;
+        private BigDecimal qtyAllocated;
+        private BigDecimal qtyPicked;
+        private BigDecimal qtyShipped;
         private String status;
         private String uom;
 
         public static OrderLineResponse fromEntity(OrderDetail detail) {
             return OrderLineResponse.builder()
-                    .id(detail.getId())
-                    .lineNumber(detail.getLineNumber())
+                    .orderKey(detail.getOrderKey())
+                    .orderLineNumber(detail.getOrderLineNumber())
                     .sku(detail.getSku())
                     .skuDescription(detail.getSkuDescription())
-                    .orderedQty(detail.getOrderedQty())
-                    .allocatedQty(detail.getAllocatedQty())
-                    .pickedQty(detail.getPickedQty())
-                    .shippedQty(detail.getShippedQty())
+                    .qtyOrdered(detail.getQtyOrdered())
+                    .qtyAllocated(detail.getQtyAllocated())
+                    .qtyPicked(detail.getQtyPicked())
+                    .qtyShipped(detail.getQtyShipped())
                     .status(detail.getStatus() != null ? detail.getStatus().name() : null)
                     .uom(detail.getUom())
                     .build();

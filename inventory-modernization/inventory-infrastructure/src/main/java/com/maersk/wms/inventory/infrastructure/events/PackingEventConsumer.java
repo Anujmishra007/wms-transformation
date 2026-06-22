@@ -38,14 +38,17 @@ public class PackingEventConsumer {
             for (PackingOperationsEvents.PackedCartonDetail carton : event.cartons()) {
                 for (PackingOperationsEvents.PackedItemDetail item : carton.items()) {
                     // Record inventory consumption for packed items
-                    InventoryRemoval removal = new InventoryRemoval(
-                            item.sourceInventoryKey(),
-                            item.packedQuantity(),
-                            InventoryTransaction.TransactionSource.ORDER,
-                            event.orderKey().value(),
-                            "Packed into carton " + carton.cartonLpn(),
-                            event.packedBy()
-                    );
+                    InventoryRemoval removal = InventoryRemoval.builder()
+                            .inventoryKey(item.sourceInventoryKey())
+                            .removalQuantity(item.packedQuantity())
+                            .sourceType(InventoryTransaction.TransactionSource.ORDER)
+                            .sourceKey(event.orderKey().value())
+                            .removalReason("Packed into carton " + carton.cartonLpn())
+                            .requestedBy(event.packedBy())
+                            .removalType(InventoryRemoval.RemovalType.PICK)
+                            .status(InventoryRemoval.RemovalStatus.PENDING)
+                            .requestedAt(event.occurredAt())
+                            .build();
 
                     lifecycleService.remove(removal);
                     log.debug("Removed inventory for pack: inventoryKey={}, quantity={}",

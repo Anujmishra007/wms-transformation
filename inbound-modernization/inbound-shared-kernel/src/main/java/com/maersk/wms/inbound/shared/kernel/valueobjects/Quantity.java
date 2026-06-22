@@ -12,6 +12,8 @@ import java.util.Objects;
  */
 public final class Quantity {
 
+    public static final Quantity ZERO = new Quantity(BigDecimal.ZERO, "EA");
+
     private final BigDecimal value;
     private final String uom;
 

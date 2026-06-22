@@ -216,7 +216,7 @@ public interface ShippingActivities {
         private String labelKey;
         private String trackingNumber;
         private String format;
-        private byte[] labelContent;
+        private String labelContent;  // Base64 encoded
         private List<String> labelUrls;
         private List<String> errors;
     }
@@ -241,7 +241,7 @@ public interface ShippingActivities {
         private String serviceCode;
         private String serviceName;
         private BigDecimal estimatedRate;
-        private String estimatedDeliveryDays;
+        private int estimatedDeliveryDays;
         private List<String> errors;
     }
 

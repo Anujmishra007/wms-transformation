@@ -1,7 +1,6 @@
 package com.maersk.wms.inventory.infrastructure.events;
 
 import com.maersk.wms.inventory.domain.events.*;
-import com.maersk.wms.inventory.shared.kernel.events.DomainEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -76,7 +75,7 @@ public class InventoryEventPublisher {
 
     @EventListener
     public void handleAllocationShortage(AllocationEvents.AllocationShortage event) {
-        String key = event.allocationKey() != null ? event.allocationKey().value() :
+        String key = event.orderKey() != null ? event.orderKey().value() :
                 event.skuKey().value();
         publishEvent(TOPIC_INVENTORY_SHORTAGE, key, event);
     }
@@ -111,7 +110,7 @@ public class InventoryEventPublisher {
 
     @EventListener
     public void handleReplenishmentCompleted(MovementEvents.ReplenishmentCompleted event) {
-        publishEvent(TOPIC_INVENTORY_MOVEMENT, event.inventoryKey().value(), event);
+        publishEvent(TOPIC_INVENTORY_MOVEMENT, event.toInventoryKey().value(), event);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -120,12 +119,12 @@ public class InventoryEventPublisher {
 
     @EventListener
     public void handleCycleCountCompleted(CountEvents.CycleCountCompleted event) {
-        publishEvent(TOPIC_INVENTORY_COUNT, event.countTaskKey().value(), event);
+        publishEvent(TOPIC_INVENTORY_COUNT, event.countKey().value(), event);
     }
 
     @EventListener
     public void handleCountVarianceDetected(CountEvents.CountVarianceDetected event) {
-        publishEvent(TOPIC_INVENTORY_COUNT, event.countTaskKey().value(), event);
+        publishEvent(TOPIC_INVENTORY_COUNT, event.countKey().value(), event);
     }
 
     @EventListener
@@ -139,22 +138,22 @@ public class InventoryEventPublisher {
 
     @EventListener
     public void handleInventoryNested(NestingEvents.InventoryNested event) {
-        publishEvent(TOPIC_INVENTORY_NESTING, event.parentLpn().value(), event);
+        publishEvent(TOPIC_INVENTORY_NESTING, event.parentLpnKey().value(), event);
     }
 
     @EventListener
     public void handleInventoryUnnested(NestingEvents.InventoryUnnested event) {
-        publishEvent(TOPIC_INVENTORY_NESTING, event.parentLpn().value(), event);
+        publishEvent(TOPIC_INVENTORY_NESTING, event.parentLpnKey().value(), event);
     }
 
     @EventListener
     public void handlePalletBuilt(NestingEvents.PalletBuilt event) {
-        publishEvent(TOPIC_INVENTORY_NESTING, event.palletLpn().value(), event);
+        publishEvent(TOPIC_INVENTORY_NESTING, event.palletLpnKey().value(), event);
     }
 
     @EventListener
     public void handlePalletBroken(NestingEvents.PalletBroken event) {
-        publishEvent(TOPIC_INVENTORY_NESTING, event.palletLpn().value(), event);
+        publishEvent(TOPIC_INVENTORY_NESTING, event.palletLpnKey().value(), event);
     }
 
     // ═══════════════════════════════════════════════════════════════

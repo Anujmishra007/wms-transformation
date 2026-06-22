@@ -138,8 +138,8 @@ public class ReturnsReceiptService {
 
         ReturnDetail detail = ReturnDetail.builder()
             .skuKey(request.getSkuKey())
-            .expectedQty(new Quantity(request.getExpectedQty(), request.getUom()))
-            .receivedQty(new Quantity(request.getReceivedQty(), request.getUom()))
+            .expectedQty(request.getExpectedQty())
+            .receivedQty(request.getReceivedQty())
             .lpnKey(request.getLpnKey())
             .locationKey(request.getLocationKey())
             .lot(request.getLot())

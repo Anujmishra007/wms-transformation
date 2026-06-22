@@ -1,7 +1,7 @@
 package com.maersk.wms.inbound.activity;
 
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptDetail;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

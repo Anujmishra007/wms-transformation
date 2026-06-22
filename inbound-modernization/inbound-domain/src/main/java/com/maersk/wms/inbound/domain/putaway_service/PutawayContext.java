@@ -169,6 +169,8 @@ public class PutawayContext {
         public Builder disposition(String disp) { context.disposition = disp; return this; }
         public Builder isCrossdock(boolean val) { context.isCrossdock = val; return this; }
         public Builder orderKey(String key) { context.orderKey = key; return this; }
+        public Builder preferConsolidation(boolean val) { context.preferConsolidation = val; return this; }
+        public Builder preferEmpty(boolean val) { context.preferEmpty = val; return this; }
 
         public PutawayContext build() {
             return context;

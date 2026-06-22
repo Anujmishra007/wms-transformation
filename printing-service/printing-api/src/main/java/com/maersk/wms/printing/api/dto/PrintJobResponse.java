@@ -4,7 +4,7 @@ import com.maersk.wms.printing.domain.print_job.model.PrintJob;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Response DTO for print job operations.
@@ -18,8 +18,8 @@ public class PrintJobResponse {
     private String labelType;
     private String printerName;
     private int copiesPrinted;
-    private LocalDateTime submittedAt;
-    private LocalDateTime completedAt;
+    private Instant submittedAt;
+    private Instant completedAt;
     private String errorMessage;
 
     /**
@@ -34,7 +34,7 @@ public class PrintJobResponse {
                 .copiesPrinted(job.getPrintedItems())
                 .submittedAt(job.getCreatedAt())
                 .completedAt(job.getCompletedAt())
-                .errorMessage(job.getErrorMessage())
+                .errorMessage(job.getLastError())
                 .build();
     }
 }

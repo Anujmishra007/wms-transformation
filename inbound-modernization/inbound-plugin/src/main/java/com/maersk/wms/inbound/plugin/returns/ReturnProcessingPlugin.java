@@ -1,12 +1,12 @@
 package com.maersk.wms.inbound.plugin.returns;
 
-import com.maersk.wms.inbound.domain.returns.TradeReturn;
+import com.maersk.wms.inbound.domain.operations_service.TradeReturn;
 import com.maersk.wms.inbound.plugin.InboundPlugin;
 import com.maersk.wms.inbound.plugin.InboundPluginContext;
 import com.maersk.wms.inbound.plugin.PluginResult;
-import com.maersk.wms.inbound.service.returns.CreditMemoResult;
-import com.maersk.wms.inbound.service.returns.InventoryUpdateResult;
-import com.maersk.wms.inbound.service.returns.RefundCalculationResult;
+import com.maersk.wms.inbound.domain.operations_service.dto.CreditMemoResult;
+import com.maersk.wms.inbound.domain.operations_service.dto.InventoryUpdateResult;
+import com.maersk.wms.inbound.domain.operations_service.dto.RefundCalculationResult;
 
 /**
  * Plugin interface for return processing and closure operations.
@@ -107,7 +107,8 @@ public interface ReturnProcessingPlugin extends InboundPlugin {
      */
     default boolean isShippingRefundApplicable(TradeReturn tradeReturn, InboundPluginContext context) {
         // Default: refund shipping only for defective returns
-        return "DEFECTIVE".equals(tradeReturn.getReturnReasonCode());
+        return tradeReturn.getReason() != null &&
+               "DEFECTIVE".equalsIgnoreCase(tradeReturn.getReason().name());
     }
 
     /**

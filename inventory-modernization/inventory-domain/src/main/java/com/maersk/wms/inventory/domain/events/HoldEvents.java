@@ -15,6 +15,42 @@ public final class HoldEvents {
 
     private HoldEvents() {}
 
+    // ═══════════════════════════════════════════════════════════════
+    // SIMPLIFIED HOLD EVENTS (for service compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public record HoldApplied(
+            InventoryKey inventoryKey,
+            String holdCode,
+            String reason,
+            UserKey appliedBy,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.hold.applied";
+        }
+    }
+
+    public record HoldReleased(
+            InventoryKey inventoryKey,
+            String holdCode,
+            String reason,
+            UserKey releasedBy,
+            WarehouseKey warehouseKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.hold.released";
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DETAILED HOLD EVENTS
+    // ═══════════════════════════════════════════════════════════════
+
     public record InventoryHoldApplied(
             HoldKey holdKey,
             String holdCode,

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -45,12 +46,12 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         TaskGroup group = TaskGroup.builder()
                 .groupKey(groupKey)
                 .groupType(type)
-                .groupName(name)
+                .name(name)
                 .zone(zone)
                 .priority(priority)
                 .status(TaskGroupStatus.CREATED)
                 .taskKeys(new ArrayList<>())
-                .createdAt(Instant.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskGroup savedGroup = groupRepository.save(group);
@@ -72,11 +73,12 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         TaskGroup group = TaskGroup.builder()
                 .groupKey(groupKey)
                 .groupType(TaskGroupType.WAVE)
-                .groupName(name)
+                .name(name)
                 .waveKey(waveKey)
                 .status(TaskGroupStatus.CREATED)
                 .taskKeys(new ArrayList<>(taskKeys))
-                .createdAt(Instant.now())
+                .totalTasks(taskKeys.size())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskGroup savedGroup = groupRepository.save(group);
@@ -104,11 +106,12 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         TaskGroup group = TaskGroup.builder()
                 .groupKey(groupKey)
                 .groupType(TaskGroupType.BATCH)
-                .groupName("Batch-" + batchId)
+                .name("Batch-" + batchId)
                 .batchId(batchId)
                 .status(TaskGroupStatus.CREATED)
                 .taskKeys(new ArrayList<>(taskKeys))
-                .createdAt(Instant.now())
+                .totalTasks(taskKeys.size())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskGroup savedGroup = groupRepository.save(group);
@@ -130,11 +133,12 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         TaskGroup group = TaskGroup.builder()
                 .groupKey(groupKey)
                 .groupType(TaskGroupType.ZONE)
-                .groupName("Zone-" + zone.value())
+                .name("Zone-" + zone.value())
                 .zone(zone)
                 .status(TaskGroupStatus.CREATED)
                 .taskKeys(new ArrayList<>(taskKeys))
-                .createdAt(Instant.now())
+                .totalTasks(taskKeys.size())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskGroup savedGroup = groupRepository.save(group);
@@ -152,11 +156,12 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         TaskGroup group = TaskGroup.builder()
                 .groupKey(groupKey)
                 .groupType(TaskGroupType.ROUTE)
-                .groupName("Route-" + routeId)
+                .name("Route-" + routeId)
                 .routeId(routeId)
                 .status(TaskGroupStatus.CREATED)
                 .taskKeys(new ArrayList<>(taskKeys))
-                .createdAt(Instant.now())
+                .totalTasks(taskKeys.size())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         TaskGroup savedGroup = groupRepository.save(group);
@@ -170,7 +175,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Override
     @Transactional(readOnly = true)
     public TaskGroup getGroup(TaskGroupKey groupKey) {
-        return groupRepository.findByGroupKey(groupKey)
+        return groupRepository.findById(groupKey)
                 .orElseThrow(() -> new TaskGroupNotFoundException(groupKey.value()));
     }
 
@@ -183,7 +188,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Override
     @Transactional(readOnly = true)
     public List<TaskGroup> getGroupsByWave(WaveKey waveKey) {
-        return groupRepository.findByWaveKey(waveKey);
+        return groupRepository.findByWave(waveKey);
     }
 
     @Override
@@ -244,7 +249,8 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         log.info("Assigning group {} to user {}", groupKey.value(), userId.value());
 
         TaskGroup group = getGroup(groupKey);
-        group.assign(userId, deviceId);
+        group.setAssignedUser(userId);
+        group.setAssignedDevice(deviceId);
         groupRepository.save(group);
 
         log.info("Assigned group {} to user {}", groupKey.value(), userId.value());
@@ -255,7 +261,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         log.info("Suspending group {} - reason: {}", groupKey.value(), reason);
 
         TaskGroup group = getGroup(groupKey);
-        group.suspend(reason);
+        group.suspend();
         groupRepository.save(group);
 
         log.info("Suspended group {}", groupKey.value());
@@ -286,7 +292,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         group.markTaskCompleted(taskKey);
 
         if (group.isComplete()) {
-            group.complete();
+            // Status is set internally by markTaskCompleted when complete
             eventPublisher.publishEvent(new GroupingEvents.TaskGroupCompleted(
                     groupKey, group.getCompletedTasks(), group.getTotalTasks(), Instant.now()
             ));
@@ -308,7 +314,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Transactional(readOnly = true)
     public double getGroupProgress(TaskGroupKey groupKey) {
         TaskGroup group = getGroup(groupKey);
-        return group.getProgress();
+        return group.getCompletionPercent();
     }
 
     // ==================== Work Queue Management ====================
@@ -321,14 +327,14 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
 
         WorkQueue queue = WorkQueue.builder()
                 .queueKey(queueKey)
-                .queueName(name)
+                .name(name)
                 .zone(zone)
                 .strategy(strategy)
                 .maxCapacity(maxCapacity)
-                .status(WorkQueue.QueueStatus.ACTIVE)
-                .taskKeys(new ArrayList<>())
-                .assignedUsers(new ArrayList<>())
-                .createdAt(Instant.now())
+                .status(WorkQueue.WorkQueueStatus.ACTIVE)
+                .pendingTasks(new ArrayList<>())
+                .authorizedUsers(new ArrayList<>())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         WorkQueue savedQueue = queueRepository.save(queue);
@@ -344,14 +350,14 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Override
     @Transactional(readOnly = true)
     public WorkQueue getWorkQueue(WorkQueueKey queueKey) {
-        return queueRepository.findByQueueKey(queueKey)
+        return queueRepository.findById(queueKey)
                 .orElseThrow(() -> new WorkQueueNotFoundException(queueKey.value()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<WorkQueue> getActiveQueues() {
-        return queueRepository.findByStatus(WorkQueue.QueueStatus.ACTIVE);
+        return queueRepository.findByStatus(WorkQueue.WorkQueueStatus.ACTIVE);
     }
 
     @Override
@@ -365,7 +371,9 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         log.info("Adding task {} to queue {}", taskKey.value(), queueKey.value());
 
         WorkQueue queue = getWorkQueue(queueKey);
-        int position = queue.addTask(taskKey);
+        int positionBefore = queue.getPendingTasks().size();
+        queue.addTask(taskKey);
+        int position = queue.getPendingTasks().size();
         queueRepository.save(queue);
 
         eventPublisher.publishEvent(new GroupingEvents.TaskEnqueued(
@@ -389,18 +397,17 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Override
     public Optional<TaskKey> getNextTaskFromQueue(WorkQueueKey queueKey, UserKey userId) {
         WorkQueue queue = getWorkQueue(queueKey);
-        Optional<TaskKey> nextTask = queue.getNextTask();
+        TaskKey nextTask = queue.getNextTask();
 
-        if (nextTask.isPresent()) {
-            queue.removeTask(nextTask.get());
+        if (nextTask != null) {
             queueRepository.save(queue);
 
             eventPublisher.publishEvent(new GroupingEvents.TaskDequeued(
-                    queueKey, nextTask.get(), userId, Instant.now()
+                    queueKey, nextTask, userId, Instant.now()
             ));
         }
 
-        return nextTask;
+        return Optional.ofNullable(nextTask);
     }
 
     @Override
@@ -451,7 +458,9 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         log.info("Adding user {} to queue {}", userId.value(), queueKey.value());
 
         WorkQueue queue = getWorkQueue(queueKey);
-        queue.addUser(userId);
+        if (!queue.getAuthorizedUsers().contains(userId)) {
+            queue.getAuthorizedUsers().add(userId);
+        }
         queueRepository.save(queue);
 
         log.info("Added user {} to queue {}", userId.value(), queueKey.value());
@@ -462,7 +471,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
         log.info("Removing user {} from queue {}", userId.value(), queueKey.value());
 
         WorkQueue queue = getWorkQueue(queueKey);
-        queue.removeUser(userId);
+        queue.getAuthorizedUsers().remove(userId);
         queueRepository.save(queue);
 
         log.info("Removed user {} from queue {}", userId.value(), queueKey.value());
@@ -472,7 +481,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Transactional(readOnly = true)
     public List<UserKey> getQueueUsers(WorkQueueKey queueKey) {
         WorkQueue queue = getWorkQueue(queueKey);
-        return queue.getAssignedUsers();
+        return queue.getAuthorizedUsers();
     }
 
     // ==================== Metrics ====================
@@ -481,7 +490,7 @@ public class TaskGroupingServiceImpl implements TaskGroupingService {
     @Transactional(readOnly = true)
     public int getQueueDepth(WorkQueueKey queueKey) {
         WorkQueue queue = getWorkQueue(queueKey);
-        return queue.getTaskKeys().size();
+        return queue.getPendingTasks().size();
     }
 
     @Override

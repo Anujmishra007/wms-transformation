@@ -17,7 +17,13 @@ public enum ProgressionEventType {
     RESUMED("RSM", "Task Resumed"),
     CANCELLED("CNL", "Task Cancelled"),
     QUANTITY_ADJUSTED("QTY", "Quantity Adjusted"),
-    LOCATION_CHANGED("LOC", "Location Changed");
+    LOCATION_CHANGED("LOC", "Location Changed"),
+    STATUS_CHANGE("STC", "Status Changed"),
+    QUANTITY_CHANGE("QTC", "Quantity Changed"),
+    LOCATION_CHANGE("LCC", "Location Changed"),
+    LPN_CHANGE("LPN", "LPN Changed"),
+    PICK_CONFIRMED("PCK", "Pick Confirmed"),
+    ASSIGNMENT_CHANGE("ASC", "Assignment Changed");
 
     private final String code;
     private final String description;

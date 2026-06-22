@@ -76,6 +76,25 @@ public class InventoryCreation {
         CANCELLED
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public SkuKey skuKey() { return skuKey; }
+    public LotKey lotKey() { return lotKey; }
+    public LocationKey locationKey() { return locationKey; }
+    public LpnKey lpnKey() { return lpnKey; }
+    public StorerKey storerKey() { return storerKey; }
+    public WarehouseKey warehouseKey() { return warehouseKey; }
+    public Quantity quantity() { return quantity; }
+    public LottableAttributes lottables() { return lottables; }
+    public CreationSource source() { return source; }
+    public String sourceKey() { return sourceKey; }
+    public ReceiptKey receiptKey() { return receiptKey; }
+    public UserKey createdBy() { return requestedBy; }
+    public UserKey requestedBy() { return requestedBy; }
+    public String returnKey() { return sourceKey; }  // For returns, sourceKey is the return key
+
     /**
      * Mark creation as completed.
      */

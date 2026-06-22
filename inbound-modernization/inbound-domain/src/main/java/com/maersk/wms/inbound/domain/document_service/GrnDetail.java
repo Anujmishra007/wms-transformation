@@ -23,10 +23,11 @@ public class GrnDetail {
 
     private String grnDetailKey;
     private Grn grn;
-    private String lineNumber;
+    private Integer lineNumber;
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for convenience
     private String skuDescription;
     private String packKey;
     private String uom;
@@ -40,9 +41,12 @@ public class GrnDetail {
 
     // Lot info
     private LotAttributes lotAttributes;
+    private String lot;  // String representation for builder
+    private java.time.LocalDate expiryDate;
 
     // Pricing (from PO)
     private BigDecimal unitPrice;
+    private BigDecimal unitCost;  // Alias for unitPrice
     private BigDecimal lineValue;
     private String currency;
 

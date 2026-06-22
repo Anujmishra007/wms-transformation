@@ -5,6 +5,10 @@ package com.maersk.wms.picking.shared.kernel.exceptions;
  */
 public class InvalidTaskStateException extends PickingException {
 
+    public InvalidTaskStateException(String message) {
+        super("INVALID_TASK_STATE", message);
+    }
+
     public InvalidTaskStateException(String taskKey, String currentState, String expectedState) {
         super("INVALID_TASK_STATE",
                 String.format("Task %s is in state %s, expected %s",

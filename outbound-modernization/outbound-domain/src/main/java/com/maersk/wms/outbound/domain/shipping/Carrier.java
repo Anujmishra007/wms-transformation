@@ -76,4 +76,11 @@ public class Carrier {
         return services.stream()
                 .anyMatch(s -> s.getServiceCode().equals(serviceCode) && s.isActive());
     }
+
+    /**
+     * Get name (alias for carrierName).
+     */
+    public String getName() {
+        return carrierName;
+    }
 }

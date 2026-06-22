@@ -244,6 +244,7 @@ public class PutawayTask {
         public Builder fromLocation(LocationKey loc) { task.fromLocation = loc; return this; }
         public Builder suggestedLocation(LocationKey loc) { task.suggestedLocation = loc; return this; }
         public Builder taskType(PutawayTaskType type) { task.taskType = type; return this; }
+        public Builder putawayZone(String zone) { task.putawayZone = zone; return this; }
         public Builder putawayStrategy(String strategy) { task.putawayStrategy = strategy; return this; }
         public Builder priority(int priority) { task.priority = priority; return this; }
         public Builder crossdock(boolean isCrossdock) { task.isCrossdock = isCrossdock; return this; }

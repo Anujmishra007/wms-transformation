@@ -16,6 +16,17 @@ public final class InventoryLifecycleEvents {
     private InventoryLifecycleEvents() {}
 
     // ═══════════════════════════════════════════════════════════════
+    // CREATION SOURCE ENUM
+    // ═══════════════════════════════════════════════════════════════
+
+    public enum CreationSource {
+        RECEIPT,
+        RETURN,
+        ADJUSTMENT,
+        CROSSDOCK
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // INVENTORY CREATED EVENTS (from inbound-operations-service)
     // ═══════════════════════════════════════════════════════════════
 
@@ -28,8 +39,7 @@ public final class InventoryLifecycleEvents {
             StorerKey storerKey,
             WarehouseKey warehouseKey,
             Quantity quantity,
-            LottableAttributes lottables,
-            String sourceType,
+            CreationSource source,
             String sourceKey,
             UserKey createdBy,
             Instant occurredAt
@@ -98,15 +108,11 @@ public final class InventoryLifecycleEvents {
     public record InventoryQuantityChanged(
             InventoryKey inventoryKey,
             SkuKey skuKey,
-            LocationKey locationKey,
-            LpnKey lpnKey,
             Quantity previousQuantity,
             Quantity newQuantity,
             Quantity changeAmount,
             String changeReason,
-            String sourceType,
-            String sourceKey,
-            WarehouseKey warehouseKey,
+            UserKey changedBy,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -171,11 +177,10 @@ public final class InventoryLifecycleEvents {
             InventoryKey inventoryKey,
             SkuKey skuKey,
             LocationKey locationKey,
-            LpnKey lpnKey,
             Quantity depletedQuantity,
-            String depletionType,
-            String sourceKey,
-            WarehouseKey warehouseKey,
+            Quantity remainingQuantity,
+            String reason,
+            UserKey depletedBy,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -204,11 +209,11 @@ public final class InventoryLifecycleEvents {
 
     public record InventoryShipped(
             InventoryKey inventoryKey,
-            OrderKey orderKey,
-            String shipmentKey,
             SkuKey skuKey,
+            LocationKey locationKey,
             Quantity shippedQuantity,
-            WarehouseKey warehouseKey,
+            String shipmentKey,
+            UserKey shippedBy,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override

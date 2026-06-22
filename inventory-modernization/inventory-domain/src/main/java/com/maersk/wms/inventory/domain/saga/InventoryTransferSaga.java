@@ -2,7 +2,7 @@ package com.maersk.wms.inventory.domain.saga;
 
 import com.maersk.wms.inventory.domain.core.model.Inventory;
 import com.maersk.wms.inventory.domain.core.repository.InventoryRepository;
-import com.maersk.wms.inventory.domain.events.saga.InventorySagaEvents;
+import com.maersk.wms.inventory.domain.saga.InventorySagaEvents;
 import com.maersk.wms.inventory.domain.events.MovementEvents;
 import com.maersk.wms.inventory.shared.kernel.exceptions.*;
 import com.maersk.wms.inventory.shared.kernel.identifiers.*;
@@ -260,7 +260,7 @@ public class InventoryTransferSaga {
                 }
 
                 // Publish compensation step
-                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStep(
+                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStepEvent(
                         sagaId,
                         action.actionType(),
                         action.inventoryKey().value(),
@@ -273,7 +273,7 @@ public class InventoryTransferSaga {
                 log.error("Compensation action failed: sagaId={}, action={}",
                         sagaId, action.actionType(), compensationError);
 
-                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStep(
+                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStepEvent(
                         sagaId,
                         action.actionType(),
                         action.inventoryKey().value(),

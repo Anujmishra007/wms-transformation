@@ -33,6 +33,10 @@ public record Quantity(BigDecimal value, String uom) {
         return new Quantity(BigDecimal.valueOf(value), "EA");
     }
 
+    public static Quantity zero(String uom) {
+        return new Quantity(BigDecimal.ZERO, uom != null ? uom : "EA");
+    }
+
     public Quantity add(Quantity other) {
         validateSameUom(other);
         return new Quantity(this.value.add(other.value), this.uom);
@@ -72,6 +76,33 @@ public record Quantity(BigDecimal value, String uom) {
     public boolean isGreaterThanOrEqual(Quantity other) {
         validateSameUom(other);
         return this.value.compareTo(other.value) >= 0;
+    }
+
+    public boolean isZeroOrNegative() {
+        return value.compareTo(BigDecimal.ZERO) <= 0;
+    }
+
+    public Quantity min(Quantity other) {
+        validateSameUom(other);
+        return this.value.compareTo(other.value) <= 0 ? this : other;
+    }
+
+    public Quantity max(Quantity other) {
+        validateSameUom(other);
+        return this.value.compareTo(other.value) >= 0 ? this : other;
+    }
+
+    public Quantity abs() {
+        return new Quantity(this.value.abs(), this.uom);
+    }
+
+    public Quantity negate() {
+        return new Quantity(this.value.negate(), this.uom);
+    }
+
+    public int compareTo(Quantity other) {
+        validateSameUom(other);
+        return this.value.compareTo(other.value);
     }
 
     private void validateSameUom(Quantity other) {

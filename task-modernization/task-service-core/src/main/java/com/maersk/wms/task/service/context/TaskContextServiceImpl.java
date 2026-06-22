@@ -237,8 +237,8 @@ public class TaskContextServiceImpl implements TaskContextService {
                 taskKey.value(), userId.value(), deviceId != null ? deviceId.value() : "none");
 
         Task task = getTask(taskKey);
-        task.setAssignedUserId(userId);
-        task.setDeviceId(deviceId);
+        task.setAssignedUser(userId);
+        task.setAssignedDevice(deviceId);
         taskRepository.save(task);
 
         if (deviceId != null) {
@@ -254,14 +254,14 @@ public class TaskContextServiceImpl implements TaskContextService {
     @Transactional(readOnly = true)
     public Optional<UserKey> getTaskUser(TaskKey taskKey) {
         Task task = getTask(taskKey);
-        return Optional.ofNullable(task.getAssignedUserId());
+        return Optional.ofNullable(task.getAssignedUser());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<DeviceKey> getTaskDevice(TaskKey taskKey) {
         Task task = getTask(taskKey);
-        return Optional.ofNullable(task.getDeviceId());
+        return Optional.ofNullable(task.getAssignedDevice());
     }
 
     // ==================== Context Queries ====================

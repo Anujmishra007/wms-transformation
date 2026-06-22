@@ -165,7 +165,7 @@ public class GrnService {
         Grn grn = grnRepository.findByKey(grnKey)
             .orElseThrow(() -> new IllegalArgumentException("GRN not found: " + grnKey));
 
-        grn.finalize();
+        grn.markFinalized();
         return grnRepository.save(grn);
     }
 

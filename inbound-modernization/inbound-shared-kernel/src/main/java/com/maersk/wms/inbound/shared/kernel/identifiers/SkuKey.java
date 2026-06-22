@@ -44,6 +44,10 @@ public final class SkuKey {
         return storerKey + ":" + sku;
     }
 
+    public String value() {
+        return storerKey + ":" + sku;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

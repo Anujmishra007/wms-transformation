@@ -67,4 +67,11 @@ public class PluginResult {
         this.warnings.add(warning);
         return this;
     }
+
+    /**
+     * Get error message (alias for getMessage for error cases).
+     */
+    public String getErrorMessage() {
+        return message;
+    }
 }

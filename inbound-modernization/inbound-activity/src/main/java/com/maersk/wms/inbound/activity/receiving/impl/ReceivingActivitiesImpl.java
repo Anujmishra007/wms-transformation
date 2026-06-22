@@ -1,17 +1,16 @@
 package com.maersk.wms.inbound.activity.receiving.impl;
 
 import com.maersk.wms.inbound.activity.receiving.ReceivingActivities;
-import com.maersk.wms.inbound.acl.putaway.PutawayFacade;
-import com.maersk.wms.inbound.domain.receiving.ReceiptType;
-import com.maersk.wms.inbound.service.receiving.AsnService;
-import com.maersk.wms.inbound.service.receiving.ReceivingService;
-import com.maersk.wms.inbound.service.receiving.dto.*;
-import com.maersk.wms.inbound.shared.kernel.identifiers.LpnKey;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptType;
+import com.maersk.wms.inbound.service.document_service.AsnService;
+import com.maersk.wms.inbound.service.operations_service.ReceivingService;
+import com.maersk.wms.inbound.service.operations_service.dto.CreateReceiptRequest;
+import com.maersk.wms.inbound.service.operations_service.dto.ReceiveLineRequest;
+import com.maersk.wms.inbound.service.operations_service.dto.ReceiveResult;
 import com.maersk.wms.inbound.shared.kernel.identifiers.ReceiptKey;
-import com.maersk.wms.inbound.shared.kernel.identifiers.SkuKey;
-import com.maersk.wms.inbound.workflow.receiving.DamageReportSignal;
-import com.maersk.wms.inbound.workflow.receiving.ReceiveLineSignal;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 /**
  * Implementation of ReceivingActivities.
@@ -23,24 +22,20 @@ public class ReceivingActivitiesImpl implements ReceivingActivities {
 
     private final ReceivingService receivingService;
     private final AsnService asnService;
-    private final PutawayFacade putawayFacade;
 
     public ReceivingActivitiesImpl(ReceivingService receivingService,
-                                   AsnService asnService,
-                                   PutawayFacade putawayFacade) {
+                                   AsnService asnService) {
         this.receivingService = receivingService;
         this.asnService = asnService;
-        this.putawayFacade = putawayFacade;
     }
 
     @Override
     public String createReceipt(String storerKey, String poKey, String userId) {
-        var request = CreateReceiptRequest.builder()
-                .storerKey(storerKey)
-                .poKey(poKey)
-                .receiptType(ReceiptType.NORMAL)
-                .userId(userId)
-                .build();
+        var request = new CreateReceiptRequest();
+        request.setStorerKey(storerKey);
+        request.setPoKey(poKey);
+        request.setReceiptType(ReceiptType.NORMAL);
+        request.setCreatedBy(userId);
 
         var receipt = receivingService.createReceipt(request);
         return receipt.getReceiptKey().getValue();
@@ -48,8 +43,9 @@ public class ReceivingActivitiesImpl implements ReceivingActivities {
 
     @Override
     public String createReceiptFromAsn(String asnKey, String userId) {
-        var receipt = asnService.convertToReceipt(asnKey, userId);
-        return receipt.getReceiptKey().getValue();
+        // Start receiving on the ASN - this creates a linked receipt
+        var asn = asnService.startReceiving(asnKey);
+        return asn.getReceiptKey();
     }
 
     @Override
@@ -58,24 +54,21 @@ public class ReceivingActivitiesImpl implements ReceivingActivities {
     }
 
     @Override
-    public ReceiveResult receiveLineItem(String receiptKey, ReceiveLineSignal signal) {
-        var request = ReceiveLineItemRequest.builder()
-                .lineNumber(signal.getLineNumber())
-                .sku(SkuKey.of("DEFAULT", signal.getSku()))  // TODO: Get storer from receipt
-                .packKey(signal.getPackKey())
-                .uom(signal.getUom())
-                .quantity(signal.getQuantity())
-                .lpn(signal.getLpn() != null ? LpnKey.of(signal.getLpn()) : null)
-                .location(signal.getLocation())
-                .conditionCode(signal.getConditionCode())
-                .userId(signal.getUserId())
-                .build();
+    public ReceiveResult receiveLineItem(String receiptKey, ReceiveLineInput input) {
+        var request = new ReceiveLineRequest();
+        request.setSkuKey(input.getSku());
+        request.setQuantity(input.getQuantity() != null ? input.getQuantity() : BigDecimal.ZERO);
+        request.setUom(input.getUom());
+        request.setLpnKey(input.getLpn());
+        request.setLocationKey(input.getLocation());
+        request.setConditionCode(input.getConditionCode());
+        request.setReceivedBy(input.getUserId());
 
-        return receivingService.receiveLineItem(ReceiptKey.of(receiptKey), request);
+        return receivingService.receiveLine(ReceiptKey.of(receiptKey), request);
     }
 
     @Override
-    public void reportDamage(String receiptKey, DamageReportSignal signal) {
+    public void reportDamage(String receiptKey, DamageReportInput input) {
         // TODO: Implement damage reporting
         // This would update the receipt detail with damaged quantity
         // and potentially create a disposition record

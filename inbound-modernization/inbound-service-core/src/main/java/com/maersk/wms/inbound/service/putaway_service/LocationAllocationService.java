@@ -305,7 +305,7 @@ public class LocationAllocationService {
     private PutawayContext buildContext(LocationSuggestionRequest request) {
         return PutawayContext.builder()
             .storerKey(new StorerKey(request.getStorerKey()))
-            .skuKey(new SkuKey(request.getStorerKey(), request.getSku()))
+            .skuKey(request.getSku())
             .quantity(new Quantity(request.getRequiredCapacity(), request.getUom()))
             .velocityClass(request.getVelocityClass())
             .isReturn(request.isReturn())

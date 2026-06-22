@@ -238,6 +238,108 @@ public final class InventorySagaEvents {
             String targetKey
     ) {}
 
+    // ═══════════════════════════════════════════════════════════════
+    // SIMPLIFIED SAGA EVENTS (for saga orchestrators)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Simple saga started event.
+     */
+    public record SagaStarted(
+            String sagaId,
+            String sagaType,
+            String entityKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.saga.started";
+        }
+    }
+
+    /**
+     * Simple saga completed event.
+     */
+    public record SagaCompleted(
+            String sagaId,
+            String sagaType,
+            boolean success,
+            String errorMessage,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.saga.completed";
+        }
+    }
+
+    /**
+     * Allocation saga step event.
+     */
+    public record AllocationSagaStep(
+            String sagaId,
+            String stepName,
+            AllocationKey allocationKey,
+            Quantity quantity,
+            SkuKey skuKey,
+            OrderKey orderKey,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.allocation_saga.step";
+        }
+    }
+
+    /**
+     * Transfer saga step event.
+     */
+    public record TransferSagaStep(
+            String sagaId,
+            String stepName,
+            InventoryKey inventoryKey,
+            LocationKey fromLocation,
+            LocationKey toLocation,
+            Quantity quantity,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.transfer_saga.step";
+        }
+    }
+
+    /**
+     * Compensation step completion event (simplified).
+     */
+    public record CompensationStepEvent(
+            String sagaId,
+            String actionType,
+            String entityKey,
+            boolean success,
+            String errorMessage,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.saga.compensation_step";
+        }
+
+        /**
+         * Factory method with original name for compatibility.
+         */
+        public static CompensationStepEvent CompensationStep(
+                String sagaId,
+                String actionType,
+                String entityKey,
+                boolean success,
+                String errorMessage,
+                Instant occurredAt
+        ) {
+            return new CompensationStepEvent(sagaId, actionType, entityKey, success, errorMessage, occurredAt);
+        }
+    }
+
     public record InventoryReservation(
             InventoryKey inventoryKey,
             LocationKey locationKey,

@@ -108,8 +108,8 @@ public class AllocationWorkflowImpl implements AllocationWorkflow {
                 state.setCurrentOrderKey(orderKey);
 
                 try {
-                    // Allocate order
-                    var result = activities.allocateOrder(
+                    // Allocate order using strategy method
+                    var result = activities.allocateOrderWithStrategy(
                             orderKey,
                             request.getPreferredStrategy(),
                             request.isAllowPartialAllocation(),
@@ -117,12 +117,18 @@ public class AllocationWorkflowImpl implements AllocationWorkflow {
                     );
 
                     // Track results
-                    pickHeaderKeys.addAll(result.pickHeaderKeys());
-                    state.setTotalAllocated(state.getTotalAllocated().add(result.allocatedQty()));
-                    state.setTotalShortage(state.getTotalShortage().add(result.shortageQty()));
+                    if (result.getPickHeaderKeys() != null) {
+                        pickHeaderKeys.addAll(result.getPickHeaderKeys());
+                    }
+                    if (result.getAllocatedQty() != null) {
+                        state.setTotalAllocated(state.getTotalAllocated().add(result.getAllocatedQty()));
+                    }
+                    if (result.getShortageQty() != null) {
+                        state.setTotalShortage(state.getTotalShortage().add(result.getShortageQty()));
+                    }
 
-                    if (!result.shortagesBySku().isEmpty()) {
-                        result.shortagesBySku().forEach((sku, qty) ->
+                    if (result.getShortagesBySku() != null && !result.getShortagesBySku().isEmpty()) {
+                        result.getShortagesBySku().forEach((sku, qty) ->
                                 shortagesBySku.merge(sku, qty, BigDecimal::add));
                     }
 

@@ -2,44 +2,48 @@ package com.maersk.wms.task.shared.kernel.valueobjects;
 
 import com.maersk.wms.task.shared.kernel.identifiers.*;
 
+import java.util.Map;
+
 /**
  * Value object containing business context for task execution.
+ * Provides a flexible structure to hold different context types (order, inventory, shipment, etc.)
  */
 public record TaskContext(
-        ContextType contextType,
-        String sourceKey,
         String sourceType,
-        OrderKey orderKey,
-        WaveKey waveKey,
-        LpnKey lpnKey,
-        SkuKey skuKey,
-        LocationKey fromLocation,
-        LocationKey toLocation,
-        ZoneKey zone,
+        String sourceKey,
+        String waveKey,
         String customerId,
-        String carrierId,
         String priority,
-        String additionalData
+        String lpnKey,
+        String fromLocation,
+        String toLocation,
+        String skuKey,
+        Map<String, Object> attributes
 ) {
 
     public static TaskContext forOrder(OrderKey orderKey, WaveKey waveKey) {
-        return new TaskContext(ContextType.ORDER, orderKey.value(), "ORDER",
-                orderKey, waveKey, null, null, null, null, null, null, null, null, null);
+        return new TaskContext("ORDER", orderKey.value(),
+                waveKey != null ? waveKey.value() : null,
+                null, null, null, null, null, null, Map.of());
     }
 
     public static TaskContext forInventory(LpnKey lpn, LocationKey from, LocationKey to) {
-        return new TaskContext(ContextType.INVENTORY, lpn.value(), "LPN",
-                null, null, lpn, null, from, to, null, null, null, null, null);
+        return new TaskContext("INVENTORY", lpn.value(), null, null, null,
+                lpn.value(),
+                from != null ? from.value() : null,
+                to != null ? to.value() : null,
+                null, Map.of());
     }
 
     public static TaskContext forShipment(String shipmentKey, String carrierId) {
-        return new TaskContext(ContextType.SHIPMENT, shipmentKey, "SHIPMENT",
-                null, null, null, null, null, null, null, null, carrierId, null, null);
+        return new TaskContext("SHIPMENT", shipmentKey, null, null, null,
+                null, null, null, null, Map.of("carrierId", carrierId));
     }
 
     public static TaskContext forAsn(String asnKey, LpnKey lpn) {
-        return new TaskContext(ContextType.ASN, asnKey, "ASN",
-                null, null, lpn, null, null, null, null, null, null, null, null);
+        return new TaskContext("ASN", asnKey, null, null, null,
+                lpn != null ? lpn.value() : null,
+                null, null, null, Map.of());
     }
 
     public enum ContextType {

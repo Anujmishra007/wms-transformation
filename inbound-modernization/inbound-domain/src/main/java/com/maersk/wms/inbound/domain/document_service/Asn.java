@@ -29,8 +29,10 @@ public class Asn {
 
     private String asnKey;
     private String externalAsnKey;
+    private String externalAsnNumber;  // Alias for externalAsnKey
 
     private AsnType type;
+    private String asnType;  // String alias for type (used by service DTOs)
     private AsnStatus status;
 
     // Owner
@@ -42,6 +44,7 @@ public class Asn {
 
     // Carrier/Shipping
     private String carrierKey;
+    private String carrierCode;  // Alias for carrierKey
     private String carrierName;
     private String trailerNumber;
     private String sealNumber;
@@ -51,7 +54,9 @@ public class Asn {
 
     // Schedule
     private LocalDateTime expectedArrivalDate;
+    private java.time.LocalDate expectedDate;  // Alias for expectedArrivalDate (LocalDate for DTO compatibility)
     private LocalDateTime actualArrivalDate;
+    private java.time.LocalDate shipDate;
     private String appointmentNumber;
     private String door;
 
@@ -125,5 +130,56 @@ public class Asn {
         details.add(detail);
         detail.setAsn(this);
         totalLines = details.size();
+    }
+
+    /**
+     * Record arrival of ASN.
+     */
+    public void recordArrival(String door, LocalDateTime arrivalTime) {
+        this.door = door;
+        this.actualArrivalDate = arrivalTime;
+        this.status = AsnStatus.ARRIVED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Start receiving process.
+     */
+    public void startReceiving() {
+        this.status = AsnStatus.RECEIVING;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Complete receiving.
+     */
+    public void completeReceiving(String userId) {
+        this.status = AsnStatus.RECEIVED;
+        this.editWho = userId;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Close the ASN.
+     */
+    public void close() {
+        this.status = AsnStatus.CLOSED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Cancel the ASN.
+     */
+    public void cancel(String reason) {
+        this.status = AsnStatus.CANCELLED;
+        this.notes = reason;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Check if ASN can be modified.
+     */
+    public boolean canBeModified() {
+        return status == AsnStatus.OPEN || status == AsnStatus.DRAFT;
     }
 }

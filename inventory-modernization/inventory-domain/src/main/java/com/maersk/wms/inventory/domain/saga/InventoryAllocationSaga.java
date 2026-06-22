@@ -1,7 +1,7 @@
 package com.maersk.wms.inventory.domain.saga;
 
 import com.maersk.wms.inventory.domain.core.service.InventoryCoreService;
-import com.maersk.wms.inventory.domain.events.saga.InventorySagaEvents;
+import com.maersk.wms.inventory.domain.saga.InventorySagaEvents;
 import com.maersk.wms.inventory.shared.kernel.identifiers.*;
 import com.maersk.wms.inventory.shared.kernel.valueobjects.*;
 import org.slf4j.Logger;
@@ -159,7 +159,7 @@ public class InventoryAllocationSaga {
                 }
 
                 // Publish compensation step event
-                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStep(
+                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStepEvent(
                         sagaId,
                         action.actionType(),
                         action.allocationKey() != null ? action.allocationKey().value() : null,
@@ -173,7 +173,7 @@ public class InventoryAllocationSaga {
                         sagaId, action.actionType(), compensationError);
 
                 // Publish compensation failure
-                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStep(
+                eventPublisher.publishEvent(new InventorySagaEvents.CompensationStepEvent(
                         sagaId,
                         action.actionType(),
                         action.allocationKey() != null ? action.allocationKey().value() : null,

@@ -6,8 +6,12 @@ package com.maersk.wms.inbound.domain.document_service;
 public enum OsdStatus {
     OPEN("0", "Open", "Report created"),
     UNDER_REVIEW("1", "Under Review", "Being reviewed"),
+    PENDING_REVIEW("1A", "Pending Review", "Submitted for review"),
     PENDING_VENDOR("2", "Pending Vendor", "Awaiting vendor response"),
+    APPROVED("2A", "Approved", "Report approved"),
     CLAIM_FILED("3", "Claim Filed", "Claim submitted to carrier/vendor"),
+    CLAIM_PENDING("3A", "Claim Pending", "Claim initiated"),
+    REJECTED("R", "Rejected", "Report rejected"),
     RESOLVED("9", "Resolved", "Issue resolved"),
     CLOSED("C", "Closed", "Report closed"),
     CANCELLED("X", "Cancelled", "Report cancelled");

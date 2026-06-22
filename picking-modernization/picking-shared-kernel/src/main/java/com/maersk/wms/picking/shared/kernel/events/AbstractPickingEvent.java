@@ -1,6 +1,9 @@
 package com.maersk.wms.picking.shared.kernel.events;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -9,32 +12,33 @@ import java.util.UUID;
  * Abstract base class for picking domain events.
  */
 @Getter
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public abstract class AbstractPickingEvent implements PickingDomainEvent {
 
-    private final PickingBoundedContext boundedContext;
-    private final String aggregateId;
-    private final String aggregateType;
-    private final LocalDateTime occurredAt;
-    private final String correlationId;
+    private PickingBoundedContext boundedContext;
+    private String aggregateId;
+    private String aggregateType;
+    private LocalDateTime occurredAt;
+    private String correlationId;
 
-    protected AbstractPickingEvent(PickingBoundedContext boundedContext,
-                                    String aggregateId,
-                                    String aggregateType) {
-        this.boundedContext = boundedContext;
-        this.aggregateId = aggregateId;
-        this.aggregateType = aggregateType;
+    /**
+     * Initialize default values for event metadata.
+     */
+    protected void initializeDefaults(PickingBoundedContext context, String aggId, String aggType) {
+        this.boundedContext = context;
+        this.aggregateId = aggId;
+        this.aggregateType = aggType;
         this.occurredAt = LocalDateTime.now();
         this.correlationId = UUID.randomUUID().toString();
     }
 
-    protected AbstractPickingEvent(PickingBoundedContext boundedContext,
-                                    String aggregateId,
-                                    String aggregateType,
-                                    String correlationId) {
-        this.boundedContext = boundedContext;
-        this.aggregateId = aggregateId;
-        this.aggregateType = aggregateType;
-        this.occurredAt = LocalDateTime.now();
-        this.correlationId = correlationId;
+    /**
+     * Returns the event type based on the class name.
+     */
+    @Override
+    public String getEventType() {
+        return this.getClass().getSimpleName();
     }
 }

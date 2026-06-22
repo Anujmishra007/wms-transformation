@@ -22,9 +22,8 @@ public final class NestingEvents {
             LpnKey childLpnKey,
             InventoryHierarchy.ContainerType childType,
             int quantity,
-            LocationKey locationKey,
-            UserKey nestedBy,
             WarehouseKey warehouseKey,
+            UserKey nestedBy,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -40,7 +39,6 @@ public final class NestingEvents {
             String unnestReason,
             LocationKey newLocationKey,
             UserKey unnestedBy,
-            WarehouseKey warehouseKey,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -53,10 +51,9 @@ public final class NestingEvents {
             LpnKey palletLpnKey,
             List<LpnKey> childLpnKeys,
             int totalCases,
-            Quantity totalQuantity,
             LocationKey locationKey,
-            UserKey builtBy,
             WarehouseKey warehouseKey,
+            UserKey builtBy,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -70,7 +67,6 @@ public final class NestingEvents {
             List<LpnKey> childLpnKeys,
             String breakReason,
             UserKey brokenBy,
-            WarehouseKey warehouseKey,
             Instant occurredAt
     ) implements InventoryDomainEvent {
         @Override
@@ -91,6 +87,19 @@ public final class NestingEvents {
         @Override
         public String getEventType() {
             return "inventory.container_consolidated";
+        }
+    }
+
+    public record InventoryConsolidated(
+            List<LpnKey> sourceLpnKeys,
+            LpnKey targetLpnKey,
+            WarehouseKey warehouseKey,
+            UserKey consolidatedBy,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.consolidated";
         }
     }
 

@@ -31,6 +31,7 @@ public class Order {
 
     private String consigneeKey;
     private String consigneeName;
+    private String shipToName;
     private String shipToAddress1;
     private String shipToAddress2;
     private String shipToCity;
@@ -57,6 +58,8 @@ public class Order {
     private BigDecimal totalVolume;
     private BigDecimal totalValue;
     private String currency;
+    private int totalCartons;
+    private int totalPallets;
 
     private String waveKey;
     private String loadKey;

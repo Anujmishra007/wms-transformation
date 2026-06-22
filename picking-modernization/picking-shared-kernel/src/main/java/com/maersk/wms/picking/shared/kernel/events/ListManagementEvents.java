@@ -1,9 +1,10 @@
 package com.maersk.wms.picking.shared.kernel.events;
 
 import com.maersk.wms.picking.shared.kernel.identifiers.*;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
@@ -18,15 +19,16 @@ public final class ListManagementEvents {
      * Event raised when a pick list is created.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class PickListCreatedEvent extends AbstractPickingEvent {
-        private final PickListKey listKey;
-        private final String listType;
-        private final String zone;
-        private final int taskCount;
-        private final WaveKey waveKey;
-        private final LocalDateTime createdTime;
+        private PickListKey listKey;
+        private String listType;
+        private String zone;
+        private int taskCount;
+        private WaveKey waveKey;
+        private LocalDateTime createdTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -38,13 +40,14 @@ public final class ListManagementEvents {
      * Event raised when a pick list is assigned.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class PickListAssignedEvent extends AbstractPickingEvent {
-        private final PickListKey listKey;
-        private final UserKey userId;
-        private final DeviceKey deviceId;
-        private final LocalDateTime assignedTime;
+        private PickListKey listKey;
+        private UserKey userId;
+        private DeviceKey deviceId;
+        private LocalDateTime assignedTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -56,12 +59,13 @@ public final class ListManagementEvents {
      * Event raised when a pick list is started.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class PickListStartedEvent extends AbstractPickingEvent {
-        private final PickListKey listKey;
-        private final UserKey userId;
-        private final LocalDateTime startTime;
+        private PickListKey listKey;
+        private UserKey userId;
+        private LocalDateTime startTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -73,15 +77,16 @@ public final class ListManagementEvents {
      * Event raised when a pick list is completed.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class PickListCompletedEvent extends AbstractPickingEvent {
-        private final PickListKey listKey;
-        private final UserKey userId;
-        private final int completedTasks;
-        private final int shortedTasks;
-        private final int skippedTasks;
-        private final LocalDateTime completeTime;
+        private PickListKey listKey;
+        private UserKey userId;
+        private int completedTasks;
+        private int shortedTasks;
+        private int skippedTasks;
+        private LocalDateTime completeTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -93,14 +98,15 @@ public final class ListManagementEvents {
      * Event raised when list progress is updated.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class ListProgressUpdatedEvent extends AbstractPickingEvent {
-        private final PickListKey listKey;
-        private final int totalTasks;
-        private final int completedTasks;
-        private final double completionPercentage;
-        private final LocalDateTime updateTime;
+        private PickListKey listKey;
+        private int totalTasks;
+        private int completedTasks;
+        private double completionPercentage;
+        private LocalDateTime updateTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -112,13 +118,14 @@ public final class ListManagementEvents {
      * Event raised when lists are merged.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class ListsMergedEvent extends AbstractPickingEvent {
-        private final PickListKey newListKey;
-        private final java.util.List<PickListKey> sourceListKeys;
-        private final int totalTasksMerged;
-        private final LocalDateTime mergedTime;
+        private PickListKey newListKey;
+        private java.util.List<PickListKey> sourceListKeys;
+        private int totalTasksMerged;
+        private LocalDateTime mergedTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {
@@ -130,13 +137,14 @@ public final class ListManagementEvents {
      * Event raised when a list is split.
      */
     @Data
-    @Builder
+    @SuperBuilder
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class ListSplitEvent extends AbstractPickingEvent {
-        private final PickListKey sourceListKey;
-        private final java.util.List<PickListKey> newListKeys;
-        private final String splitCriteria;
-        private final LocalDateTime splitTime;
+        private PickListKey sourceListKey;
+        private java.util.List<PickListKey> newListKeys;
+        private String splitCriteria;
+        private LocalDateTime splitTime;
 
         @Override
         public PickingBoundedContext getBoundedContext() {

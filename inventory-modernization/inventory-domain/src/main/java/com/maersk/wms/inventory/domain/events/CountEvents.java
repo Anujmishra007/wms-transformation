@@ -4,6 +4,8 @@ import com.maersk.wms.inventory.shared.kernel.events.InventoryDomainEvent;
 import com.maersk.wms.inventory.shared.kernel.identifiers.*;
 import com.maersk.wms.inventory.shared.kernel.valueobjects.*;
 
+import com.maersk.wms.inventory.domain.controls.model.CountType;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -14,6 +16,28 @@ import java.util.List;
 public final class CountEvents {
 
     private CountEvents() {}
+
+    // ═══════════════════════════════════════════════════════════════
+    // COUNT TYPE EVENTS
+    // ═══════════════════════════════════════════════════════════════
+
+    public record CountTypeCreated(
+            CountKey countTypeKey,
+            String countTypeCode,
+            CountType.CountStrategy strategy,
+            WarehouseKey warehouseKey,
+            UserKey createdBy,
+            Instant occurredAt
+    ) implements InventoryDomainEvent {
+        @Override
+        public String getEventType() {
+            return "inventory.count_type_created";
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CYCLE COUNT EVENTS
+    // ═══════════════════════════════════════════════════════════════
 
     public record CycleCountInitiated(
             CountKey countKey,

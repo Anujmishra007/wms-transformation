@@ -45,6 +45,8 @@ public class PickSession {
     // Metrics
     private int tasksCompleted;
     private int tasksShorted;
+    private int picksCompleted;
+    private int shortsRecorded;
     private long totalPickTimeMs;
     private String pauseReason;
 

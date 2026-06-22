@@ -126,4 +126,22 @@ public class InventoryHierarchy {
 
         return hierarchy;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public NestingKey nestingKey() { return nestingKey; }
+    public LpnKey parentLpnKey() { return parentLpnKey; }
+    public ContainerType parentType() { return parentType; }
+    public LpnKey childLpnKey() { return childLpnKey; }
+    public ContainerType childType() { return childType; }
+    public int nestingLevel() { return nestingLevel; }
+    public int sequenceNumber() { return sequenceNumber; }
+    public int quantity() { return quantity; }
+    public LocationKey locationKey() { return locationKey; }
+    public WarehouseKey warehouseKey() { return warehouseKey; }
+    public NestingStatus status() { return status; }
+    public Instant nestedAt() { return nestedAt; }
+    public UserKey nestedBy() { return nestedBy; }
 }

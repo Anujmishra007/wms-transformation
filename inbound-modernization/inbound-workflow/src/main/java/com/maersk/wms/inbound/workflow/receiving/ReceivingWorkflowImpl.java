@@ -241,7 +241,18 @@ public class ReceivingWorkflowImpl implements ReceivingWorkflow {
         while (!receiveSignals.isEmpty()) {
             ReceiveLineSignal signal = receiveSignals.remove(0);
             try {
-                var result = activities.receiveLineItem(receiptKey, signal);
+                var input = com.maersk.wms.inbound.activity.receiving.ReceivingActivities.ReceiveLineInput.builder()
+                        .lineNumber(signal.getLineNumber())
+                        .sku(signal.getSku())
+                        .packKey(signal.getPackKey())
+                        .uom(signal.getUom())
+                        .quantity(signal.getQuantity())
+                        .lpn(signal.getLpn())
+                        .location(signal.getLocation())
+                        .conditionCode(signal.getConditionCode())
+                        .userId(signal.getUserId())
+                        .build();
+                var result = activities.receiveLineItem(receiptKey, input);
 
                 // Update line state
                 LineReceiveState lineState = lineStates.computeIfAbsent(
@@ -273,7 +284,15 @@ public class ReceivingWorkflowImpl implements ReceivingWorkflow {
     private void processDamageSignals() {
         while (!damageSignals.isEmpty()) {
             DamageReportSignal signal = damageSignals.remove(0);
-            activities.reportDamage(receiptKey, signal);
+            var input = com.maersk.wms.inbound.activity.receiving.ReceivingActivities.DamageReportInput.builder()
+                    .lineNumber(signal.getLineNumber())
+                    .sku(signal.getSku())
+                    .damagedQty(signal.getDamagedQty())
+                    .damageCode(signal.getDamageCode())
+                    .notes(signal.getDamageDescription())
+                    .userId(signal.getUserId())
+                    .build();
+            activities.reportDamage(receiptKey, input);
         }
     }
 

@@ -14,11 +14,14 @@ import java.util.Optional;
  */
 public interface OsdRepository {
     Optional<Osd> findByKey(String osdKey);
+    List<Osd> findByStorerKey(StorerKey storerKey);
     List<Osd> findByStorerAndStatus(StorerKey storerKey, OsdStatus status);
     List<Osd> findByReceiptKey(String receiptKey);
     List<Osd> findByType(OsdType type);
     List<Osd> findOpenOsds(StorerKey storerKey);
     List<Osd> findByDateRange(LocalDateTime from, LocalDateTime to);
+    List<Osd> findPending();
+    List<Osd> findByVendorKey(String vendorKey);
     Osd save(Osd osd);
     void delete(String osdKey);
     boolean exists(String osdKey);

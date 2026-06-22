@@ -145,4 +145,19 @@ public class InventoryChange {
         this.errorMessage = error;
         this.completedAt = Instant.now();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RECORD-STYLE ACCESSORS (for DDD compatibility)
+    // ═══════════════════════════════════════════════════════════════
+
+    public InventoryKey inventoryKey() { return inventoryKey; }
+    public Inventory.InventoryStatusCode newStatus() { return newStatus; }
+    public String reason() { return changeReason; }
+    public UserKey changedBy() { return requestedBy; }
+    public ChangeType changeType() { return changeType; }
+    public Quantity newQuantity() { return newQuantity; }
+    public Quantity previousQuantity() { return previousQuantity; }
+    public LottableAttributes newLottables() { return newLottables; }
+    public StorerKey newStorerKey() { return newStorerKey; }
+    public String newHoldCode() { return newHoldCode; }
 }

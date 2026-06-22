@@ -1,13 +1,13 @@
 package com.maersk.wms.inbound.plugin.returns;
 
-import com.maersk.wms.inbound.domain.returns.ReturnDetail;
-import com.maersk.wms.inbound.domain.returns.ReturnType;
-import com.maersk.wms.inbound.domain.returns.TradeReturn;
+import com.maersk.wms.inbound.domain.operations_service.ReturnDetail;
+import com.maersk.wms.inbound.domain.operations_service.ReturnType;
+import com.maersk.wms.inbound.domain.operations_service.TradeReturn;
 import com.maersk.wms.inbound.plugin.InboundPlugin;
 import com.maersk.wms.inbound.plugin.InboundPluginContext;
 import com.maersk.wms.inbound.plugin.PluginResult;
-import com.maersk.wms.inbound.service.returns.CreateReturnRequest;
-import com.maersk.wms.inbound.service.returns.ReceiveReturnLineRequest;
+import com.maersk.wms.inbound.domain.operations_service.dto.CreateReturnRequest;
+import com.maersk.wms.inbound.domain.operations_service.dto.ReceiveReturnLineRequest;
 
 import java.util.Optional;
 

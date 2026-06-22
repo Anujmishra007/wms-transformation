@@ -83,11 +83,12 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
 
         // Apply configured rules
         List<PriorityRule> rules = getActiveRules();
+        String zoneValue = zone != null ? zone.value() : null;
         for (PriorityRule rule : rules) {
-            if (rule.appliesTo(type, customerId, zone)) {
+            if (rule.appliesTo(type, customerId, zoneValue)) {
                 score += rule.getPriorityBoost();
-                appliedRules.add(rule.getRuleName());
-                reason.append(rule.getRuleName()).append(": +").append(rule.getPriorityBoost()).append("; ");
+                appliedRules.add(rule.getName());
+                reason.append(rule.getName()).append(": +").append(rule.getPriorityBoost()).append("; ");
             }
         }
 
@@ -140,7 +141,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     public void escalateOverdueTasks() {
         log.info("Escalating overdue tasks");
 
-        List<Task> overdueTasks = taskRepository.findOverdueTasks(LocalDateTime.now());
+        List<Task> overdueTasks = taskRepository.findOverdue(LocalDateTime.now());
 
         for (Task task : overdueTasks) {
             if (task.getPriority().level() != TaskPriorityValue.PriorityLevel.CRITICAL) {
@@ -162,12 +163,12 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
 
         PriorityRule rule = PriorityRule.builder()
                 .ruleKey(ruleKey)
-                .ruleName(name)
+                .name(name)
                 .ruleType(type)
                 .priorityBoost(priorityBoost)
                 .precedence(precedence)
                 .active(true)
-                .createdAt(Instant.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         PriorityRule saved = ruleRepository.save(rule);
@@ -183,14 +184,14 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     @Override
     @Transactional(readOnly = true)
     public PriorityRule getRule(String ruleKey) {
-        return ruleRepository.findByRuleKey(ruleKey)
+        return ruleRepository.findById(ruleKey)
                 .orElseThrow(() -> new PriorityRuleNotFoundException(ruleKey));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PriorityRule> getActiveRules() {
-        return ruleRepository.findByActiveTrue();
+        return ruleRepository.findActive();
     }
 
     @Override
@@ -204,7 +205,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Activating rule {}", ruleKey);
 
         PriorityRule rule = getRule(ruleKey);
-        rule.activate();
+        rule.setActive(true);
         ruleRepository.save(rule);
 
         eventPublisher.publishEvent(new PrioritizationEvents.PriorityRuleActivated(
@@ -219,7 +220,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Deactivating rule {}", ruleKey);
 
         PriorityRule rule = getRule(ruleKey);
-        rule.deactivate();
+        rule.setActive(false);
         ruleRepository.save(rule);
 
         eventPublisher.publishEvent(new PrioritizationEvents.PriorityRuleDeactivated(
@@ -234,7 +235,11 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Updating rule {}", ruleKey);
 
         PriorityRule rule = getRule(ruleKey);
-        rule.update(updates);
+        // Copy fields from updates
+        if (updates.getName() != null) rule.setName(updates.getName());
+        if (updates.getDescription() != null) rule.setDescription(updates.getDescription());
+        if (updates.getPriorityBoost() != 0) rule.setPriorityBoost(updates.getPriorityBoost());
+        if (updates.getPrecedence() != 0) rule.setPrecedence(updates.getPrecedence());
         ruleRepository.save(rule);
 
         eventPublisher.publishEvent(new PrioritizationEvents.PriorityRuleUpdated(
@@ -248,8 +253,8 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     public void deleteRule(String ruleKey) {
         log.info("Deleting rule {}", ruleKey);
 
-        PriorityRule rule = getRule(ruleKey);
-        ruleRepository.delete(rule);
+        getRule(ruleKey); // Verify exists
+        ruleRepository.delete(ruleKey);
 
         log.info("Deleted rule {}", ruleKey);
     }
@@ -259,14 +264,14 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     @Override
     @Transactional(readOnly = true)
     public UserWorkload getUserWorkload(UserKey userId) {
-        return workloadRepository.findByUserId(userId)
+        return workloadRepository.findById(userId)
                 .orElseGet(() -> createDefaultWorkload(userId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserWorkload> getAvailableUsers(ZoneKey zone) {
-        return workloadRepository.findByZoneAndStatus(zone, UserWorkload.WorkloadStatus.AVAILABLE);
+        return workloadRepository.findAvailableInZone(zone);
     }
 
     @Override
@@ -291,7 +296,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Assigning task {} to user workload {}", taskKey.value(), userId.value());
 
         UserWorkload workload = getUserWorkload(userId);
-        workload.addTask(taskKey);
+        workload.assignTask(taskKey);
         workloadRepository.save(workload);
 
         WorkloadMetrics metrics = calculateWorkloadMetrics(workload);
@@ -300,10 +305,10 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         ));
 
         // Check if threshold exceeded
-        if (workload.getActiveTasks().size() > workload.getMaxTasks()) {
+        if (workload.getActiveTasks().size() > workload.getMaxConcurrentTasks()) {
             eventPublisher.publishEvent(new PrioritizationEvents.WorkloadThresholdExceeded(
                     userId, "ACTIVE_TASKS", workload.getActiveTasks().size(),
-                    workload.getMaxTasks(), Instant.now()
+                    workload.getMaxConcurrentTasks(), Instant.now()
             ));
         }
 
@@ -347,7 +352,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         List<UserWorkload> availableUsers = getAvailableUsers(zone);
 
         return availableUsers.stream()
-                .filter(w -> w.canAcceptTask(type))
+                .filter(UserWorkload::canAcceptTask)
                 .min(Comparator.comparingInt(w -> w.getActiveTasks().size()))
                 .map(UserWorkload::getUserId);
     }
@@ -355,14 +360,10 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     @Override
     @Transactional(readOnly = true)
     public List<UserKey> rankUsersForTask(TaskKey taskKey, List<UserKey> candidates) {
-        Task task = getTask(taskKey);
-
         return candidates.stream()
                 .map(this::getUserWorkload)
-                .filter(w -> w.canAcceptTask(task.getTaskType()))
-                .sorted(Comparator
-                        .comparingInt((UserWorkload w) -> w.getActiveTasks().size())
-                        .thenComparingInt(w -> -w.getSkillLevel(task.getTaskType())))
+                .filter(UserWorkload::canAcceptTask)
+                .sorted(Comparator.comparingInt((UserWorkload w) -> w.getActiveTasks().size()))
                 .map(UserWorkload::getUserId)
                 .collect(Collectors.toList());
     }
@@ -403,7 +404,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
                 for (int i = 0; i < tasksToTransfer && !from.getActiveTasks().isEmpty(); i++) {
                     TaskKey task = from.getActiveTasks().get(0);
                     from.removeTask(task);
-                    to.addTask(task);
+                    to.assignTask(task);
                     transferredTasks.add(task);
                 }
 
@@ -431,7 +432,9 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Assigning user {} to zone {}", userId.value(), zone.value());
 
         UserWorkload workload = getUserWorkload(userId);
-        workload.addZone(zone);
+        if (!workload.getAssignedZones().contains(zone)) {
+            workload.getAssignedZones().add(zone);
+        }
         workloadRepository.save(workload);
 
         log.info("Assigned user {} to zone {}", userId.value(), zone.value());
@@ -442,7 +445,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         log.info("Removing user {} from zone {}", userId.value(), zone.value());
 
         UserWorkload workload = getUserWorkload(userId);
-        workload.removeZone(zone);
+        workload.getAssignedZones().remove(zone);
         workloadRepository.save(workload);
 
         log.info("Removed user {} from zone {}", userId.value(), zone.value());
@@ -472,7 +475,7 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
         if (workloads.isEmpty()) return 0.0;
 
         int totalCapacity = workloads.stream()
-                .mapToInt(UserWorkload::getMaxTasks)
+                .mapToInt(UserWorkload::getMaxConcurrentTasks)
                 .sum();
 
         int currentTasks = workloads.stream()
@@ -486,8 +489,8 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
     @Transactional(readOnly = true)
     public double getUserUtilization(UserKey userId) {
         UserWorkload workload = getUserWorkload(userId);
-        return workload.getMaxTasks() > 0
-                ? (double) workload.getActiveTasks().size() / workload.getMaxTasks() * 100
+        return workload.getMaxConcurrentTasks() > 0
+                ? (double) workload.getActiveTasks().size() / workload.getMaxConcurrentTasks() * 100
                 : 0.0;
     }
 
@@ -527,19 +530,23 @@ public class TaskPrioritizationServiceImpl implements TaskPrioritizationService 
                 .userId(userId)
                 .status(UserWorkload.WorkloadStatus.AVAILABLE)
                 .activeTasks(new ArrayList<>())
+                .pendingTasks(new ArrayList<>())
                 .assignedZones(new ArrayList<>())
-                .maxTasks(10)
-                .skillLevels(new HashMap<>())
+                .maxConcurrentTasks(10)
                 .build();
         return workloadRepository.save(workload);
     }
 
     private WorkloadMetrics calculateWorkloadMetrics(UserWorkload workload) {
+        int active = workload.getActiveTasks().size();
+        int max = workload.getMaxConcurrentTasks();
         return new WorkloadMetrics(
-                workload.getActiveTasks().size(),
-                workload.getMaxTasks(),
-                workload.getCompletedToday(),
-                (double) workload.getActiveTasks().size() / workload.getMaxTasks() * 100
+                active,
+                workload.getPendingTasks() != null ? workload.getPendingTasks().size() : 0,
+                workload.getTasksCompletedToday(),
+                workload.getAvgTaskDuration() != null ? workload.getAvgTaskDuration() : java.time.Duration.ZERO,
+                max > 0 ? (double) active / max * 100 : 0.0,
+                max
         );
     }
 }

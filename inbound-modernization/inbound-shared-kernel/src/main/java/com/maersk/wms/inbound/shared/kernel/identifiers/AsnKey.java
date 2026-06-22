@@ -27,6 +27,10 @@ public final class AsnKey {
         return value;
     }
 
+    public String value() {
+        return value;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

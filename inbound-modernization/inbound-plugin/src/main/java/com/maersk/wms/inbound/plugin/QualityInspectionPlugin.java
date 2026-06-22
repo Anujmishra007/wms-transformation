@@ -1,6 +1,6 @@
 package com.maersk.wms.inbound.plugin;
 
-import com.maersk.wms.inbound.domain.ReceiptDetail;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
 
 /**
  * Plugin interface for quality inspection operations.

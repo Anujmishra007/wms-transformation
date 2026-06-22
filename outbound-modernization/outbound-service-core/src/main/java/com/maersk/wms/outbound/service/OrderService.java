@@ -2,6 +2,7 @@ package com.maersk.wms.outbound.service;
 
 import com.maersk.wms.outbound.domain.Order;
 import com.maersk.wms.outbound.domain.OrderDetail;
+import com.maersk.wms.outbound.domain.OrderDetailStatus;
 import com.maersk.wms.outbound.domain.OrderStatus;
 import com.maersk.wms.outbound.domain.repository.OrderRepository;
 import com.maersk.wms.outbound.plugin.OutboundPluginContext;
@@ -37,25 +38,25 @@ public class OrderService {
      */
     @Transactional
     public Order createOrder(Order order, OutboundPluginContext context) {
-        log.info("Creating order: {} for client: {}", order.getOrderNumber(), context.getClientCode());
+        log.info("Creating order: {} for client: {}", order.getOrderKey(), context.getClientCode());
 
         // Validate order
         validateOrder(order);
 
         // Set initial status
         order.setStatus(OrderStatus.NEW);
-        order.setCreatedBy(context.getUserId());
-        order.setCreatedAt(LocalDateTime.now());
+        order.setAddWho(context.getUserId());
+        order.setAddDate(LocalDateTime.now());
 
         // Set line statuses
         for (OrderDetail detail : order.getDetails()) {
-            detail.setStatus(com.maersk.wms.outbound.domain.OrderDetailStatus.NEW);
+            detail.setStatus(OrderDetailStatus.NEW);
         }
 
         // Save order
         Order savedOrder = orderRepository.save(order);
 
-        log.info("Order created: {} with {} lines", savedOrder.getOrderNumber(),
+        log.info("Order created: {} with {} lines", savedOrder.getOrderKey(),
                 savedOrder.getDetails().size());
 
         return savedOrder;
@@ -65,11 +66,11 @@ public class OrderService {
      * Allocate inventory for an order.
      */
     @Transactional
-    public AllocationResult allocateOrder(String orderNumber, OutboundPluginContext context) {
-        log.info("Allocating order: {}", orderNumber);
+    public AllocationResult allocateOrder(String orderKey, OutboundPluginContext context) {
+        log.info("Allocating order: {}", orderKey);
 
-        Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderNumber));
+        Order order = orderRepository.findByKey(orderKey)
+                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderKey));
 
         // Execute before allocation plugins
         PluginResult beforeResult = pluginRegistry.executeAll(
@@ -109,7 +110,7 @@ public class OrderService {
                 plugin -> plugin.afterAllocate(order, List.of(), context)
         );
 
-        log.info("Order {} allocated with strategy: {}", orderNumber, strategy);
+        log.info("Order {} allocated with strategy: {}", orderKey, strategy);
 
         return AllocationResult.success(order);
     }
@@ -118,11 +119,11 @@ public class OrderService {
      * Release order for picking.
      */
     @Transactional
-    public Order releaseOrder(String orderNumber, OutboundPluginContext context) {
-        log.info("Releasing order: {}", orderNumber);
+    public Order releaseOrder(String orderKey, OutboundPluginContext context) {
+        log.info("Releasing order: {}", orderKey);
 
-        Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderNumber));
+        Order order = orderRepository.findByKey(orderKey)
+                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderKey));
 
         if (order.getStatus() != OrderStatus.ALLOCATED) {
             throw new OutboundOperationException(
@@ -130,17 +131,17 @@ public class OrderService {
         }
 
         order.setStatus(OrderStatus.RELEASED);
-        order.setReleasedAt(LocalDateTime.now());
-        order.setReleasedBy(context.getUserId());
+        order.setEditDate(LocalDateTime.now());
+        order.setEditWho(context.getUserId());
 
         return orderRepository.save(order);
     }
 
     /**
-     * Get order by number.
+     * Get order by key.
      */
-    public Optional<Order> getOrder(String orderNumber) {
-        return orderRepository.findByOrderNumber(orderNumber);
+    public Optional<Order> getOrder(String orderKey) {
+        return orderRepository.findByKey(orderKey);
     }
 
     /**
@@ -151,8 +152,8 @@ public class OrderService {
     }
 
     private void validateOrder(Order order) {
-        if (order.getOrderNumber() == null || order.getOrderNumber().isEmpty()) {
-            throw new OutboundOperationException("Order number is required");
+        if (order.getOrderKey() == null || order.getOrderKey().isEmpty()) {
+            throw new OutboundOperationException("Order key is required");
         }
         if (order.getDetails() == null || order.getDetails().isEmpty()) {
             throw new OutboundOperationException("Order must have at least one line");
@@ -163,9 +164,9 @@ public class OrderService {
         return AllocationRuleFacts.builder()
                 .clientCode(context.getClientCode())
                 .facilityCode(context.getFacilityCode())
-                .orderNumber(order.getOrderNumber())
-                .orderType(order.getOrderType() != null ? order.getOrderType().name() : null)
-                .customerCode(order.getCustomerCode())
+                .orderNumber(order.getOrderKey())
+                .orderType(order.getOrderType())
+                .customerCode(order.getConsigneeKey())
                 .priority(order.getPriority() != null ? order.getPriority().ordinal() : 2)
                 .clientConfig(context.getParameters())
                 .build();

@@ -1,10 +1,12 @@
 package com.maersk.wms.inbound.activity.receiving;
 
-import com.maersk.wms.inbound.service.receiving.dto.ReceiveResult;
-import com.maersk.wms.inbound.workflow.receiving.DamageReportSignal;
-import com.maersk.wms.inbound.workflow.receiving.ReceiveLineSignal;
+import com.maersk.wms.inbound.service.operations_service.dto.ReceiveResult;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
+import lombok.Builder;
+import lombok.Data;
+
+import java.math.BigDecimal;
 
 /**
  * Temporal Activities interface for Receiving subdomain.
@@ -41,13 +43,13 @@ public interface ReceivingActivities {
      * Receive a line item.
      */
     @ActivityMethod
-    ReceiveResult receiveLineItem(String receiptKey, ReceiveLineSignal signal);
+    ReceiveResult receiveLineItem(String receiptKey, ReceiveLineInput input);
 
     /**
      * Report damage on a line.
      */
     @ActivityMethod
-    void reportDamage(String receiptKey, DamageReportSignal signal);
+    void reportDamage(String receiptKey, DamageReportInput input);
 
     /**
      * Validate the receipt.
@@ -72,4 +74,30 @@ public interface ReceivingActivities {
      */
     @ActivityMethod
     void cancelReceipt(String receiptKey, String reason);
+
+    // Input DTOs
+    @Data
+    @Builder
+    class ReceiveLineInput {
+        private String lineNumber;
+        private String sku;
+        private String packKey;
+        private String uom;
+        private BigDecimal quantity;
+        private String lpn;
+        private String location;
+        private String conditionCode;
+        private String userId;
+    }
+
+    @Data
+    @Builder
+    class DamageReportInput {
+        private String lineNumber;
+        private String sku;
+        private BigDecimal damagedQty;
+        private String damageCode;
+        private String notes;
+        private String userId;
+    }
 }

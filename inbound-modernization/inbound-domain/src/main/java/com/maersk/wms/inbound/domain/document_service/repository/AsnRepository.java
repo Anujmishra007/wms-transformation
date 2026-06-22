@@ -14,11 +14,17 @@ import java.util.Optional;
 public interface AsnRepository {
     Optional<Asn> findByKey(String asnKey);
     Optional<Asn> findByExternalKey(String externalKey);
+    Optional<Asn> findByExternalAsnNumber(String externalAsnNumber);
+    List<Asn> findByStorerKey(StorerKey storerKey);
     List<Asn> findByStorerAndStatus(StorerKey storerKey, AsnStatus status);
+    List<Asn> findByStatus(AsnStatus status);
     List<Asn> findExpectedInDateRange(LocalDateTime from, LocalDateTime to);
     List<Asn> findByCarrier(String carrierKey);
     List<Asn> findByVendor(String vendorKey);
     List<Asn> findByPoKey(String poKey);
+    List<Asn> findPending();
+    List<Asn> findExpected();
+    List<Asn> findAll();
     Asn save(Asn asn);
     void delete(String asnKey);
     boolean exists(String asnKey);

@@ -29,6 +29,7 @@ public class ReceiptDetail {
 
     // SKU
     private SkuKey sku;
+    private String skuKey;  // String representation for convenience
     private String skuDescription;
     private String packKey;
     private String uom;
@@ -40,21 +41,34 @@ public class ReceiptDetail {
     private BigDecimal rejectedQty;
     private BigDecimal putawayQty;
 
+    // Short/Over/Damage details
+    private BigDecimal shortQty;
+    private String shortReason;
+    private BigDecimal overQty;
+    private String overReason;
+    private String damageCode;
+    private String damageReason;
+
     // Status
     private ReceiptDetailStatus status;
 
     // LPN tracking
     private LpnKey lpn;
     private LpnKey toLpn;
+    private String lpnKey;  // String representation for builder
 
     // Lot tracking
     private LotAttributes lotAttributes;
+    private String lot;  // String lot for convenience
+    private java.time.LocalDate expiryDate;
 
     // Locations
     private String receiveLocation;
+    private String locationKey;  // Alias for receiveLocation
     private String putawayLocation;
 
     // Document references
+    private String poKey;
     private String poDetailKey;
     private String asnDetailKey;
 
@@ -67,6 +81,10 @@ public class ReceiptDetail {
     // Dates
     private LocalDateTime receiveDate;
     private LocalDateTime putawayDate;
+
+    // Receiving info
+    private String receivedBy;
+    private java.time.Instant receivedAt;
 
     // Audit
     private String addWho;

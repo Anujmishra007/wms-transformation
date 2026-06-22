@@ -29,8 +29,10 @@ public class PurchaseOrder {
 
     private String poKey;
     private String externalPoKey;
+    private String externalPoNumber;  // Alias for externalPoKey
 
     private PoType type;
+    private String poType;  // String alias for type (used by service DTOs)
     private PoStatus status;
 
     // Owner
@@ -43,12 +45,13 @@ public class PurchaseOrder {
 
     // Schedule
     private LocalDateTime orderDate;
-    private LocalDateTime expectedDate;
+    private java.time.LocalDate expectedDate;  // LocalDate for DTO compatibility
     private LocalDateTime cancelDate;  // Cancel if not received by
 
     // Buyer info
     private String buyerKey;
     private String buyerName;
+    private String buyerReference;
 
     // Totals
     private int totalLines;
@@ -117,5 +120,62 @@ public class PurchaseOrder {
         details.add(detail);
         detail.setPurchaseOrder(this);
         totalLines = details.size();
+    }
+
+    /**
+     * Check if PO can be modified.
+     */
+    public boolean canBeModified() {
+        return status == PoStatus.DRAFT || status == PoStatus.OPEN;
+    }
+
+    /**
+     * Approve the PO.
+     */
+    public void approve() {
+        this.status = PoStatus.APPROVED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Cancel the PO.
+     */
+    public void cancel(String reason) {
+        this.status = PoStatus.CANCELLED;
+        this.notes = reason;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Close the PO.
+     */
+    public void close() {
+        this.status = PoStatus.CLOSED;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Record receipt against a detail line.
+     */
+    public void recordReceipt(String detailKey, BigDecimal qty, String userId) {
+        for (PurchaseOrderDetail detail : details) {
+            if (detail.getPoDetailKey() != null && detail.getPoDetailKey().equals(detailKey)) {
+                BigDecimal currentQty = detail.getReceivedQty() != null ? detail.getReceivedQty() : BigDecimal.ZERO;
+                detail.setReceivedQty(currentQty.add(qty));
+                break;
+            }
+        }
+        updateTotalReceivedQty();
+        this.editWho = userId;
+        this.editDate = LocalDateTime.now();
+    }
+
+    private void updateTotalReceivedQty() {
+        totalReceivedQty = BigDecimal.ZERO;
+        for (PurchaseOrderDetail detail : details) {
+            if (detail.getReceivedQty() != null) {
+                totalReceivedQty = totalReceivedQty.add(detail.getReceivedQty());
+            }
+        }
     }
 }

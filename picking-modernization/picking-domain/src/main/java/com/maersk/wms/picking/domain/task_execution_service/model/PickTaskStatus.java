@@ -10,6 +10,7 @@ public enum PickTaskStatus {
     IN_PROGRESS("5", "In Progress"),
     COMPLETED("9", "Completed"),
     SHORTED("S", "Shorted"),
+    SKIPPED("K", "Skipped"),
     CANCELLED("X", "Cancelled"),
     SUSPENDED("P", "Suspended");
 

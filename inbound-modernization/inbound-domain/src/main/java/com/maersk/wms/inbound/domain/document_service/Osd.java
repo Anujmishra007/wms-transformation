@@ -38,9 +38,11 @@ public class Osd {
 
     // Source document
     private String receiptKey;
+    private String receiptDetailKey;
     private String asnKey;
     private String poKey;
     private String carrierKey;
+    private String carrierCode;
 
     // Vendor
     private String vendorKey;
@@ -71,6 +73,8 @@ public class Osd {
     // Claim info
     private String claimNumber;
     private BigDecimal claimAmount;
+    private BigDecimal creditAmount;
+    private BigDecimal debitAmount;
     private String claimStatus;
 
     // Notes
@@ -140,5 +144,67 @@ public class Osd {
                 totalDamagedQty = totalDamagedQty.add(detail.getDamagedQty());
             }
         }
+    }
+
+    /**
+     * Calculate totals (public wrapper).
+     */
+    public void calculateTotals() {
+        recalculateTotals();
+    }
+
+    /**
+     * Check if OSD is resolved.
+     */
+    public boolean isResolved() {
+        return status == OsdStatus.RESOLVED || status == OsdStatus.CLOSED;
+    }
+
+    /**
+     * Submit OSD for review.
+     */
+    public void submitForReview() {
+        this.status = OsdStatus.PENDING_REVIEW;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Approve the OSD.
+     */
+    public void approve(String approver) {
+        this.status = OsdStatus.APPROVED;
+        this.resolvedBy = approver;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Initiate a claim for the OSD.
+     */
+    public void initiateClaim(String claimNumber) {
+        this.claimNumber = claimNumber;
+        this.claimStatus = "INITIATED";
+        this.status = OsdStatus.CLAIM_PENDING;
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Resolve the OSD.
+     */
+    public void resolve(String resolution, String notes) {
+        this.resolution = resolution;
+        this.resolutionNotes = notes;
+        this.status = OsdStatus.RESOLVED;
+        this.resolutionDate = LocalDateTime.now();
+        this.editDate = LocalDateTime.now();
+    }
+
+    /**
+     * Reject the OSD.
+     */
+    public void reject(String reason, String rejectedBy) {
+        this.status = OsdStatus.REJECTED;
+        this.resolutionNotes = reason;
+        this.resolvedBy = rejectedBy;
+        this.editDate = LocalDateTime.now();
     }
 }

@@ -40,11 +40,11 @@ public class ShipmentService {
      * Create a shipment for an order.
      */
     @Transactional
-    public Shipment createShipment(String orderNumber, OutboundPluginContext context) {
-        log.info("Creating shipment for order: {}", orderNumber);
+    public Shipment createShipment(String orderKey, OutboundPluginContext context) {
+        log.info("Creating shipment for order: {}", orderKey);
 
-        Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderNumber));
+        Order order = orderRepository.findByKey(orderKey)
+                .orElseThrow(() -> new OutboundOperationException("Order not found: " + orderKey));
 
         // Execute before shipment create plugins
         PluginResult beforeResult = pluginRegistry.executeAll(
@@ -63,22 +63,29 @@ public class ShipmentService {
                 .map(p -> p.selectCarrier(order, context))
                 .orElse(order.getCarrierCode());
 
+        // Generate shipment key
+        String shipmentKey = shipmentRepository.generateShipmentKey();
+
         // Create shipment
-        Shipment shipment = new Shipment();
-        shipment.setOrderNumber(orderNumber);
-        shipment.setCarrierCode(carrier);
-        shipment.setShipMethod(order.getShipMethod());
-        shipment.setShipmentType(ShipmentType.PARCEL);
-        shipment.setStatus(ShipmentStatus.NEW);
-        shipment.setShipToName(order.getShipToName());
-        shipment.setShipToAddress1(order.getShipToAddress1());
-        shipment.setShipToAddress2(order.getShipToAddress2());
-        shipment.setShipToCity(order.getShipToCity());
-        shipment.setShipToState(order.getShipToState());
-        shipment.setShipToZip(order.getShipToZip());
-        shipment.setShipToCountry(order.getShipToCountry());
-        shipment.setCreatedBy(context.getUserId());
-        shipment.setCreatedAt(LocalDateTime.now());
+        Shipment shipment = Shipment.builder()
+                .shipmentKey(shipmentKey)
+                .storerKey(order.getStorerKey())
+                .carrierCode(carrier)
+                .carrierName(order.getCarrierName())
+                .serviceLevel(order.getServiceLevel())
+                .type(ShipmentType.PARCEL)
+                .status(ShipmentStatus.NEW)
+                .shipToName(order.getConsigneeName())
+                .shipToAddress1(order.getShipToAddress1())
+                .shipToAddress2(order.getShipToAddress2())
+                .shipToCity(order.getShipToCity())
+                .shipToState(order.getShipToState())
+                .shipToZip(order.getShipToZip())
+                .shipToCountry(order.getShipToCountry())
+                .addWho(context.getUserId())
+                .addDate(LocalDateTime.now())
+                .orderKeys(List.of(orderKey))
+                .build();
 
         Shipment savedShipment = shipmentRepository.save(shipment);
 
@@ -89,7 +96,7 @@ public class ShipmentService {
                 plugin -> plugin.afterShipmentCreate(savedShipment, context)
         );
 
-        log.info("Shipment created: {} for order: {}", savedShipment.getShipmentId(), orderNumber);
+        log.info("Shipment created: {} for order: {}", savedShipment.getShipmentKey(), orderKey);
 
         return savedShipment;
     }
@@ -98,11 +105,11 @@ public class ShipmentService {
      * Confirm shipment (ship confirm).
      */
     @Transactional
-    public Shipment confirmShipment(String shipmentId, OutboundPluginContext context) {
-        log.info("Confirming shipment: {}", shipmentId);
+    public Shipment confirmShipment(String shipmentKey, OutboundPluginContext context) {
+        log.info("Confirming shipment: {}", shipmentKey);
 
-        Shipment shipment = shipmentRepository.findByShipmentId(shipmentId)
-                .orElseThrow(() -> new OutboundOperationException("Shipment not found: " + shipmentId));
+        Shipment shipment = shipmentRepository.findByKey(shipmentKey)
+                .orElseThrow(() -> new OutboundOperationException("Shipment not found: " + shipmentKey));
 
         // Execute before ship confirm plugins
         PluginResult beforeResult = pluginRegistry.executeAll(
@@ -124,8 +131,9 @@ public class ShipmentService {
         // Update shipment
         shipment.setStatus(ShipmentStatus.SHIPPED);
         shipment.setFreightCharge(freightCharge);
-        shipment.setShippedAt(LocalDateTime.now());
-        shipment.setShippedBy(context.getUserId());
+        shipment.setActualShipDate(LocalDateTime.now());
+        shipment.setEditWho(context.getUserId());
+        shipment.setEditDate(LocalDateTime.now());
 
         Shipment savedShipment = shipmentRepository.save(shipment);
 
@@ -137,7 +145,7 @@ public class ShipmentService {
         );
 
         log.info("Shipment confirmed: {} with tracking: {}",
-                savedShipment.getShipmentId(), savedShipment.getTrackingNumber());
+                savedShipment.getShipmentKey(), savedShipment.getTrackingNumber());
 
         return savedShipment;
     }
@@ -146,11 +154,11 @@ public class ShipmentService {
      * Generate manifest for shipment.
      */
     @Transactional
-    public Shipment generateManifest(String shipmentId, OutboundPluginContext context) {
-        log.info("Generating manifest for shipment: {}", shipmentId);
+    public Shipment generateManifest(String shipmentKey, OutboundPluginContext context) {
+        log.info("Generating manifest for shipment: {}", shipmentKey);
 
-        Shipment shipment = shipmentRepository.findByShipmentId(shipmentId)
-                .orElseThrow(() -> new OutboundOperationException("Shipment not found: " + shipmentId));
+        Shipment shipment = shipmentRepository.findByKey(shipmentKey)
+                .orElseThrow(() -> new OutboundOperationException("Shipment not found: " + shipmentKey));
 
         // Execute before manifest plugins
         PluginResult beforeResult = pluginRegistry.executeAll(
@@ -174,7 +182,8 @@ public class ShipmentService {
 
         // Update shipment with manifest
         shipment.setStatus(ShipmentStatus.MANIFESTED);
-        shipment.setManifestedAt(LocalDateTime.now());
+        shipment.setEditDate(LocalDateTime.now());
+        shipment.setEditWho(context.getUserId());
 
         Shipment savedShipment = shipmentRepository.save(shipment);
 
@@ -185,16 +194,16 @@ public class ShipmentService {
                 plugin -> plugin.afterManifest(savedShipment, context)
         );
 
-        log.info("Manifest generated for shipment: {}", shipmentId);
+        log.info("Manifest generated for shipment: {}", shipmentKey);
 
         return savedShipment;
     }
 
     /**
-     * Get shipment by ID.
+     * Get shipment by key.
      */
-    public Optional<Shipment> getShipment(String shipmentId) {
-        return shipmentRepository.findByShipmentId(shipmentId);
+    public Optional<Shipment> getShipment(String shipmentKey) {
+        return shipmentRepository.findByKey(shipmentKey);
     }
 
     /**
@@ -205,13 +214,17 @@ public class ShipmentService {
     }
 
     private ShippingRuleFacts buildShippingFacts(Shipment shipment, OutboundPluginContext context) {
+        String orderKey = shipment.getOrderKeys() != null && !shipment.getOrderKeys().isEmpty()
+                ? shipment.getOrderKeys().get(0)
+                : null;
+
         return ShippingRuleFacts.builder()
                 .clientCode(context.getClientCode())
                 .facilityCode(context.getFacilityCode())
-                .orderNumber(shipment.getOrderNumber())
-                .shipmentId(shipment.getShipmentId())
+                .orderNumber(orderKey)
+                .shipmentId(shipment.getShipmentKey())
                 .carrier(shipment.getCarrierCode())
-                .shipMethod(shipment.getShipMethod())
+                .shipMethod(shipment.getServiceLevel())
                 .shipToCountry(shipment.getShipToCountry())
                 .shipToState(shipment.getShipToState())
                 .shipToZip(shipment.getShipToZip())

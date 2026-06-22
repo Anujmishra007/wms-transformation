@@ -1,8 +1,8 @@
 package com.maersk.wms.inbound.kafka;
 
-import com.maersk.wms.inbound.domain.Receipt;
-import com.maersk.wms.inbound.domain.ReceiptDetail;
-import com.maersk.wms.inbound.domain.PutawayTask;
+import com.maersk.wms.inbound.domain.operations_service.Receipt;
+import com.maersk.wms.inbound.domain.operations_service.ReceiptDetail;
+import com.maersk.wms.inbound.domain.operations_service.PutawayTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -28,82 +28,85 @@ public class InboundEventPublisher {
      * Publish receipt created event.
      */
     public void publishReceiptCreated(Receipt receipt) {
-        log.info("Publishing receipt created event: {}", receipt.getReceiptKey());
+        String receiptKeyValue = receipt.getReceiptKey() != null ? receipt.getReceiptKey().value() : null;
+        log.info("Publishing receipt created event: {}", receiptKeyValue);
         ReceiptCreatedEvent event = ReceiptCreatedEvent.builder()
-                .receiptKey(receipt.getReceiptKey())
-                .storerKey(receipt.getStorerKey())
-                .receiptType(receipt.getReceiptType())
+                .receiptKey(receiptKeyValue)
+                .storerKey(receipt.getStorerKey() != null ? receipt.getStorerKey().value() : null)
+                .receiptType(receipt.getReceiptType() != null ? receipt.getReceiptType().name() : null)
                 .poKey(receipt.getPoKey())
                 .asnKey(receipt.getAsnKey())
-                .status(receipt.getStatus().getCode())
+                .status(receipt.getStatus() != null ? receipt.getStatus().getCode() : null)
                 .build();
-        kafkaTemplate.send(TOPIC_RECEIPT_CREATED, receipt.getReceiptKey(), event);
+        kafkaTemplate.send(TOPIC_RECEIPT_CREATED, receiptKeyValue, event);
     }
 
     /**
      * Publish receipt closed event.
      */
     public void publishReceiptClosed(Receipt receipt) {
-        log.info("Publishing receipt closed event: {}", receipt.getReceiptKey());
+        String receiptKeyValue = receipt.getReceiptKey() != null ? receipt.getReceiptKey().value() : null;
+        log.info("Publishing receipt closed event: {}", receiptKeyValue);
         ReceiptClosedEvent event = ReceiptClosedEvent.builder()
-                .receiptKey(receipt.getReceiptKey())
-                .storerKey(receipt.getStorerKey())
-                .totalReceivedQty(receipt.getTotalReceivedQty())
-                .totalDamagedQty(receipt.getTotalDamagedQty())
-                .variance(receipt.getTotalVariance())
-                .closedDate(receipt.getClosedDate())
+                .receiptKey(receiptKeyValue)
+                .storerKey(receipt.getStorerKey() != null ? receipt.getStorerKey().value() : null)
+                .totalReceivedQty(receipt.getReceivedQty())
+                .closedDate(receipt.getCloseDate())
                 .build();
-        kafkaTemplate.send(TOPIC_RECEIPT_CLOSED, receipt.getReceiptKey(), event);
+        kafkaTemplate.send(TOPIC_RECEIPT_CLOSED, receiptKeyValue, event);
     }
 
     /**
      * Publish inventory received event.
      */
     public void publishInventoryReceived(ReceiptDetail detail) {
-        log.info("Publishing inventory received event: {} - {}", detail.getReceiptKey(), detail.getSku());
+        String receiptKeyValue = detail.getReceipt() != null && detail.getReceipt().getReceiptKey() != null
+                ? detail.getReceipt().getReceiptKey().value() : null;
+        String skuValue = detail.getSku() != null ? detail.getSku().value() : null;
+        log.info("Publishing inventory received event: {} - {}", receiptKeyValue, skuValue);
         InventoryReceivedEvent event = InventoryReceivedEvent.builder()
-                .receiptKey(detail.getReceiptKey())
-                .lineNumber(detail.getReceiptLineNumber())
-                .sku(detail.getSku())
-                .lot(detail.getLot())
-                .lpn(detail.getId())
-                .location(detail.getLocation())
+                .receiptKey(receiptKeyValue)
+                .lineNumber(detail.getLineNumber())
+                .sku(skuValue)
+                .lot(detail.getLotAttributes() != null ? detail.getLotAttributes().getLot() : null)
+                .lpn(detail.getLpn() != null ? detail.getLpn().value() : null)
+                .location(detail.getReceiveLocation())
                 .receivedQty(detail.getReceivedQty())
                 .damagedQty(detail.getDamagedQty())
                 .build();
-        kafkaTemplate.send(TOPIC_INVENTORY_RECEIVED, detail.getReceiptKey(), event);
+        kafkaTemplate.send(TOPIC_INVENTORY_RECEIVED, receiptKeyValue, event);
     }
 
     /**
      * Publish putaway task created event.
      */
     public void publishPutawayCreated(PutawayTask task) {
-        log.info("Publishing putaway created event: {}", task.getTaskKey());
+        log.info("Publishing putaway created event: {}", task.getPutawayKey());
         PutawayCreatedEvent event = PutawayCreatedEvent.builder()
-                .taskKey(task.getTaskKey())
-                .receiptKey(task.getReceiptKey())
-                .sku(task.getSku())
-                .fromLocation(task.getFromLocation())
-                .toLocation(task.getToLocation())
-                .qty(task.getQty())
+                .taskKey(task.getPutawayKey())
+                .receiptKey(task.getReceiptKey() != null ? task.getReceiptKey().value() : null)
+                .sku(task.getSkuKey() != null ? task.getSkuKey().value() : null)
+                .fromLocation(task.getFromLocation() != null ? task.getFromLocation().value() : null)
+                .toLocation(task.getToLocation() != null ? task.getToLocation().value() : null)
+                .qty(task.getQuantity() != null ? task.getQuantity().getValue() : null)
                 .build();
-        kafkaTemplate.send(TOPIC_PUTAWAY_CREATED, task.getTaskKey(), event);
+        kafkaTemplate.send(TOPIC_PUTAWAY_CREATED, task.getPutawayKey(), event);
     }
 
     /**
      * Publish putaway completed event.
      */
     public void publishPutawayCompleted(PutawayTask task) {
-        log.info("Publishing putaway completed event: {}", task.getTaskKey());
+        log.info("Publishing putaway completed event: {}", task.getPutawayKey());
         PutawayCompletedEvent event = PutawayCompletedEvent.builder()
-                .taskKey(task.getTaskKey())
-                .receiptKey(task.getReceiptKey())
-                .sku(task.getSku())
-                .toLocation(task.getToLocation())
-                .toLpn(task.getToLpn())
-                .qty(task.getQty())
-                .completedDate(task.getCompletedDate())
+                .taskKey(task.getPutawayKey())
+                .receiptKey(task.getReceiptKey() != null ? task.getReceiptKey().value() : null)
+                .sku(task.getSkuKey() != null ? task.getSkuKey().value() : null)
+                .toLocation(task.getToLocation() != null ? task.getToLocation().value() : null)
+                .toLpn(task.getTargetLpn() != null ? task.getTargetLpn().value() : null)
+                .qty(task.getQuantity() != null ? task.getQuantity().getValue() : null)
+                .completedDate(task.getCompletedAt() != null ? java.time.LocalDateTime.ofInstant(task.getCompletedAt(), java.time.ZoneId.systemDefault()) : null)
                 .build();
-        kafkaTemplate.send(TOPIC_PUTAWAY_COMPLETED, task.getTaskKey(), event);
+        kafkaTemplate.send(TOPIC_PUTAWAY_COMPLETED, task.getPutawayKey(), event);
     }
 }
