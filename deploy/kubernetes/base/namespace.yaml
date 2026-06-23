@@ -1,0 +1,28 @@
+---
+# Namespace for WMS Services
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wms-dev
+  labels:
+    app.kubernetes.io/name: wms
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wms-staging
+  labels:
+    app.kubernetes.io/name: wms
+    app.kubernetes.io/managed-by: kubectl
+    environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wms-prod
+  labels:
+    app.kubernetes.io/name: wms
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod

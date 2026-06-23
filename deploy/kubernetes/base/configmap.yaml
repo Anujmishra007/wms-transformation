@@ -1,0 +1,33 @@
+---
+# Common ConfigMap for WMS Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wms-common-config
+  labels:
+    app.kubernetes.io/name: wms
+    app.kubernetes.io/component: config
+data:
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_CONSUMER_GROUP_PREFIX: "wms"
+
+  # Database Configuration (override in secrets)
+  DB_HOST: "mssql"
+  DB_PORT: "1433"
+  DB_NAME: "WMS"
+
+  # Temporal Configuration
+  TEMPORAL_HOST: "temporal:7233"
+  TEMPORAL_NAMESPACE: "wms"
+
+  # Spring Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+
+  # Logging
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_MAERSK_WMS: "DEBUG"
+
+  # Actuator
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "always"

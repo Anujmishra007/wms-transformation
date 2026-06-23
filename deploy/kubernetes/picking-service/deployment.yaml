@@ -1,0 +1,105 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: picking-service
+  labels:
+    app.kubernetes.io/name: picking-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: wms
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: picking-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: picking-service
+        app.kubernetes.io/component: service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8089"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: wms-service-account
+      containers:
+        - name: picking-service
+          image: IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8089
+              protocol: TCP
+          env:
+            - name: SERVER_PORT
+              value: "8089"
+            - name: SPRING_APPLICATION_NAME
+              value: "picking-service"
+          envFrom:
+            - configMapRef:
+                name: wms-common-config
+            - secretRef:
+                name: wms-db-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1.5Gi"
+              cpu: "1500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8089
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8089
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: picking-service
+  labels:
+    app.kubernetes.io/name: picking-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8089
+      targetPort: 8089
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: picking-service
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: picking-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: picking-service
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

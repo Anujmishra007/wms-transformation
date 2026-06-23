@@ -1,0 +1,228 @@
+# Docker Compose for running all WMS microservices locally
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.services.yml up -d
+
+version: '3.8'
+
+services:
+  # ============== Core Services ==============
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/inventory-service/Dockerfile
+    image: wms/inventory-service:latest
+    container_name: wms-inventory-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - TEMPORAL_SERVICE_ADDRESS=temporal:7233
+    depends_on:
+      - mssql
+      - kafka
+      - temporal
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  inbound-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/inbound-service/Dockerfile
+    image: wms/inbound-service:latest
+    container_name: wms-inbound-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - TEMPORAL_SERVICE_ADDRESS=temporal:7233
+    depends_on:
+      - mssql
+      - kafka
+      - temporal
+      - inventory-service
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  outbound-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/outbound-service/Dockerfile
+    image: wms/outbound-service:latest
+    container_name: wms-outbound-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - TEMPORAL_SERVICE_ADDRESS=temporal:7233
+    depends_on:
+      - mssql
+      - kafka
+      - temporal
+      - inventory-service
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  picking-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/picking-service/Dockerfile
+    image: wms/picking-service:latest
+    container_name: wms-picking-service
+    ports:
+      - "8089:8089"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - TEMPORAL_SERVICE_ADDRESS=temporal:7233
+    depends_on:
+      - mssql
+      - kafka
+      - temporal
+      - inventory-service
+      - outbound-service
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  task-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/task-service/Dockerfile
+    image: wms/task-service:latest
+    container_name: wms-task-service
+    ports:
+      - "8092:8092"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - TEMPORAL_SERVICE_ADDRESS=temporal:7233
+    depends_on:
+      - mssql
+      - kafka
+      - temporal
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  masterdata-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/masterdata-service/Dockerfile
+    image: wms/masterdata-service:latest
+    container_name: wms-masterdata-service
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - mssql
+      - kafka
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  printing-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/printing-service/Dockerfile
+    image: wms/printing-service:latest
+    container_name: wms-printing-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=WMS;encrypt=false
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=YourStrong@Passw0rd
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - mssql
+      - kafka
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============== API Gateway (Optional) ==============
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: wms-api-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - inventory-service
+      - inbound-service
+      - outbound-service
+      - picking-service
+      - task-service
+      - masterdata-service
+      - printing-service
+    networks:
+      - wms-network
+
+networks:
+  wms-network:
+    external: true
+    name: wms-network

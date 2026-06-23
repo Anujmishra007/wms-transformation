@@ -1,0 +1,78 @@
+# CI/CD Pipeline for Outbound Service
+name: Outbound Service CI/CD
+
+on:
+  push:
+    branches: [main, develop, 'release/*']
+    paths:
+      - 'outbound-modernization/**'
+      - 'wms-shared-libs/**'
+      - '.github/workflows/outbound-service.yml'
+      - '.github/workflows/reusable-build.yml'
+      - 'pom.xml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'outbound-modernization/**'
+      - 'wms-shared-libs/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to environment'
+        required: false
+        type: boolean
+        default: false
+      environment:
+        description: 'Target environment'
+        required: false
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+
+jobs:
+  build-and-deploy:
+    name: Outbound Service
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      service-name: outbound-service
+      service-module: outbound-modernization/outbound-api
+      port: '8087'
+      java-version: '17'
+      run-tests: true
+      push-image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      deploy: ${{ github.event.inputs.deploy == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+      environment: ${{ github.event.inputs.environment || 'dev' }}
+    secrets: inherit
+
+  integration-tests:
+    name: Karate E2E Tests
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Karate E2E Tests
+        run: |
+          mvn test -pl outbound-modernization/outbound-test \
+            -Dkarate.options="--tags @smoke" \
+            -B
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: outbound-e2e-test-results
+          path: outbound-modernization/outbound-test/target/karate-reports/

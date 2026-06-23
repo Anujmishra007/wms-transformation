@@ -1,0 +1,66 @@
+# Base Dockerfile for WMS Microservices
+# This multi-stage build creates optimized Docker images
+
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+
+# Copy parent pom and shared libs first (for better caching)
+COPY pom.xml .
+COPY wms-shared-libs/ wms-shared-libs/
+
+# Copy service-specific module
+ARG SERVICE_DIR
+COPY ${SERVICE_DIR}/ ${SERVICE_DIR}/
+
+# Build the service
+ARG SERVICE_MODULE
+RUN mvn clean package -pl ${SERVICE_MODULE} -am -DskipTests -B
+
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jre-alpine
+
+# Add labels for better container management
+LABEL maintainer="WMS Team <wms-team@maersk.com>"
+LABEL org.opencontainers.image.source="https://github.com/maersk/wms-transformation"
+
+# Create non-root user for security
+RUN addgroup -g 1001 wms && adduser -u 1001 -G wms -s /bin/sh -D wms
+
+WORKDIR /app
+
+# Install required packages
+RUN apk add --no-cache curl jq
+
+# Copy JAR from builder
+ARG SERVICE_MODULE
+COPY --from=builder /app/${SERVICE_MODULE}/target/*.jar app.jar
+
+# Change ownership
+RUN chown -R wms:wms /app
+
+# Switch to non-root user
+USER wms
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${SERVER_PORT:-8080}/actuator/health || exit 1
+
+# Expose port
+ARG SERVICE_PORT=8080
+ENV SERVER_PORT=${SERVICE_PORT}
+EXPOSE ${SERVICE_PORT}
+
+# JVM configuration for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:InitialRAMPercentage=50.0 \
+    -XX:+UseG1GC \
+    -XX:+HeapDumpOnOutOfMemoryError \
+    -XX:HeapDumpPath=/tmp \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-default}"
+
+# Entry point
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]
